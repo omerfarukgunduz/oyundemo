@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="card card-party rounded-4 p-4 text-white mb-4">
+            <p class="text-white-75 text-uppercase small fw-bold mb-2" style="letter-spacing:.06em;">Kontrol kulesi</p>
+            <h1 class="h3 fw-bold mb-4">Paketleri yönet • CSV yükle • misafiri şaşırt</h1>
+            <div class="d-grid gap-3">
+                <a class="btn btn-light fw-semibold rounded-pill px-4 py-3 text-dark shadow-sm text-start"
+                   asp-area="Admin" asp-controller="Packages" asp-action="Index">Soru paketleri ve CRUD</a>
+                <a class="btn btn-outline-light fw-semibold rounded-pill px-4 py-3 text-white text-start"
+                   asp-area="Admin" asp-controller="CsvImport" asp-action="Index">CSV ile toplu soru yükle</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-party rounded-4 p-4 text-white mb-4 h-100">
+            <p class="small text-white-50 mb-0">Davet bağlantıları ve parti masaları oyuncuların tarafından yürütülür; sen sadece beyin ol.</p>
+        </div>
+    </div>
+</div>

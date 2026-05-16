@@ -1,0 +1,89 @@
+@model RoomPlayPageVm
+@{
+    ViewData["Title"] = $"Oyun • {Model.RoomCode}";
+    var bootPayload = JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["hubPath"] = Url.Content("~/hubs/game") ?? "/hubs/game",
+        ["scene"] = "play",
+        ["roomCode"] = Model.RoomCode,
+        ["identity"] = Model.MemberGuid.ToString("N"),
+        ["nickname"] = Model.Nickname,
+        ["isHost"] = Model.IsHost,
+        ["inviteUrl"] = Model.InviteUrl,
+    }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+}
+
+<div class="row g-4 pb-5">
+    <div class="col-lg-8">
+        <div class="card card-party rounded-4 p-4 text-white mb-4">
+            <div class="d-flex flex-column flex-lg-row gap-4 justify-content-between align-items-start mb-4">
+                <div>
+                    <p class="text-white-50 text-uppercase small mb-2" style="letter-spacing:.08em;">Masada olarak</p>
+                    <p class="h3 fw-semibold gradient-text mb-0" id="youBadge">@Model.Nickname</p>
+                    <small class="text-white-50 d-block mt-3">Davet linki 👉 <span id="inviteCopySnippet" class="text-white fw-semibold">@Model.InviteUrl</span></small>
+                    <button id="inviteCopyFloating" type="button" class="btn btn-outline-light btn-sm rounded-pill mt-3 px-4">Linki kopyala</button>
+                </div>
+            </div>
+            <section id="collectPanel" style="display:none;">
+                <p class="text-white-50 fw-semibold text-uppercase small mb-2" style="letter-spacing:.06em;">Soru</p>
+                <h2 id="questionTitle" class="h3 fw-semibold lh-base text-white mb-4">...</h2>
+
+                <div id="timerBoard" class="rounded-4 p-4 glass-chip mb-4" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-white-75">Zaman dolmadan yanitini gonder</small>
+                        <span id="timerValue" class="h4 fw-bold text-warning mb-0">...</span>
+                    </div>
+                </div>
+
+                <label class="form-label fw-semibold">Anonim cevap</label>
+                <textarea id="answerField" maxlength="500" rows="7" placeholder="En dramatik tepkiyi seç ve yaz 😉" class="form-control rounded-4 bg-dark border-0 text-white px-4 py-3 mb-4"></textarea>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <button id="sendAnswerBtn" type="button" class="btn btn-accent w-100 rounded-pill py-3 fw-bold">Gonder ve guldur masayi</button>
+                    </div>
+                    <div class="col-md-4" id="hostRevealPanel" style="display:none;">
+                        <button id="hostRevealEarlyBtn" type="button" class="btn btn-light w-100 rounded-pill py-3 fw-semibold shadow-sm text-dark">Hemen ac</button>
+                        <small class="text-white-50 mt-3 d-inline-block mb-4">Masada kahkaha yukselince acmayi beklemek gerekmese de host zorlasabilir 👀.</small>
+                    </div>
+                </div>
+
+                <p id="feedbackText" class="text-warning fw-semibold small mt-3 mb-3" style="display:none;"></p>
+            </section>
+
+            <section id="revealPanel" style="display:none;">
+                <div id="mentionWinnerPanel" class="rounded-4 p-4 glass-chip mb-4 border border-warning border-opacity-25" style="display:none;">
+                    <p class="text-white-50 small text-uppercase mb-2" style="letter-spacing:.06em;">Bu turda cevaplarda en cok gecen isim</p>
+                    <p id="mentionWinnerName" class="display-6 fw-bold gradient-text mb-0 lh-sm"></p>
+                    <p id="mentionWinnerDetail" class="text-white-50 small mt-2 mb-0"></p>
+                </div>
+                <p class="fw-semibold gradient-text mb-4">Masadaki anon kartlar 💬</p>
+                <div id="deckGrid" class="card-grid mb-4"></div>
+
+                <div id="hostNextPanel" class="rounded-4 p-4 bg-dark bg-opacity-25 border border-secondary border-opacity-25" style="display:none;">
+                    <button id="hostNextRoundBtn" type="button" class="btn btn-accent w-100 rounded-pill fw-bold py-4">Siradaki soru</button>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div id="roomChatPanel" class="card card-party rounded-4 p-4 text-white h-100 d-flex flex-column">
+            <h3 class="h5 gradient-text fw-bold mb-2">Masada sohbet</h3>
+            <p class="text-white-50 small mb-3">Oyuncular takma adlariyla yaziyor — oyun sırasında canli.</p>
+
+            <div id="chatMessages" class="party-chat-log rounded-4 p-3 mb-3 flex-grow-1 text-white small" aria-live="polite" role="log"></div>
+
+            <label class="form-label fw-semibold small mb-2" for="chatInput">Mesaj</label>
+            <div class="input-group mb-2">
+                <input id="chatInput" type="text" maxlength="400" autocomplete="off" placeholder="Masaya yaz..." class="form-control rounded-start-pill bg-dark border-0 text-white px-4 py-3" />
+                <button id="chatSendBtn" type="button" class="btn btn-accent rounded-end-pill px-4 fw-semibold">Gonder</button>
+            </div>
+            <small class="text-white-50">Enter ile gonder • max 400 karakter</small>
+        </div>
+    </div>
+</div>
+
+<script defer>
+window.ifsaPartyBoot = @Html.Raw(bootPayload);
+</script>
+
+<script defer src="~/js/ifsak-realtime.js" asp-append-version="true"></script>

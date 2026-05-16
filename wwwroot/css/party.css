@@ -1,0 +1,177 @@
+:root {
+    --accent: #ff5f8f;
+    --accent-2: #7c6bff;
+    --mint: #3ee0c9;
+    --sun: #ffcf61;
+}
+
+.party-body {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 20% -10%, rgba(255, 95, 143, .35), transparent 42%),
+        radial-gradient(circle at 82% -20%, rgba(124, 107, 255, .35), transparent 45%),
+        linear-gradient(120deg, #0f1023, #26165b 52%, #0f1023);
+    color: #f9f9ff;
+    font-family: "Sora", system-ui, -apple-system, sans-serif;
+}
+
+.party-footer-text {
+    color: rgba(255,255,255,.75);
+}
+
+.party-nav {
+    background: rgba(15, 16, 35, .86);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+}
+
+.party-nav .nav-link {
+    color: rgba(255,255,255,.92) !important;
+}
+
+.gradient-text {
+    font-family: "Fredoka", "Sora", system-ui, sans-serif;
+    letter-spacing: -0.5px;
+    background: linear-gradient(120deg, var(--accent), var(--accent-2), var(--mint));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.card-party {
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255,255,255,.13);
+    box-shadow: 0 26px 60px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255,255,255,.15);
+}
+
+.btn-accent {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #ffffff;
+    border: none;
+}
+
+.btn-accent:hover {
+    filter: brightness(1.08);
+    color: #ffffff;
+}
+
+.pulse-dot {
+    width: .55rem;
+    height: .55rem;
+    border-radius: 999px;
+    background: var(--mint);
+    box-shadow: 0 0 0 8px rgba(62,224,201,.35);
+}
+
+.card-grid {
+    display: grid;
+    gap: .75rem;
+}
+
+@media (min-width: 768px) {
+    .card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.answer-card {
+    animation: shuffleIn .6s cubic-bezier(.2,.9,.2,1) both;
+}
+
+@keyframes shuffleIn {
+    from {
+        opacity: 0;
+        transform: rotateY(90deg) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: rotateY(0deg) translateY(0);
+    }
+}
+
+.glass-chip {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.15);
+}
+
+.party-chat-log {
+    min-height: 220px;
+    max-height: 420px;
+    overflow-y: auto;
+    word-break: break-word;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.party-chat-line {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.45rem 0;
+}
+
+.party-chat-line:last-child {
+    border-bottom: none;
+}
+
+.party-chat-nick {
+    color: rgba(255, 193, 7, 0.95);
+    font-weight: 600;
+}
+
+.party-chat-time {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.party-chat-text {
+    color: rgba(255, 255, 255, 0.92);
+    margin-top: 0.15rem;
+    white-space: pre-wrap;
+}
+
+/* Anchor hedefleri sticky navbar altinda kalmesin */
+#nasil {
+    scroll-margin-top: 5.5rem;
+}
+
+/* Mobil / masaustu — push bildirimi gibi: sag ustten kayar */
+#ifsSnack.ifs-push-toast {
+    position: fixed;
+    z-index: 1090;
+    top: max(5.5rem, calc(env(safe-area-inset-top, 0px) + 4rem));
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    max-width: min(21rem, calc(100vw - 2rem));
+    line-height: 1.35;
+    transform: translate3d(calc(100% + 2rem), 0, 0);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.35s ease,
+        visibility 0.42s;
+}
+
+#ifsSnack.ifs-push-toast.ifs-push-show {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #ifsSnack.ifs-push-toast {
+        transition-duration: 0.01ms;
+        transform: none;
+    }
+
+    #ifsSnack.ifs-push-toast:not(.ifs-push-show) {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    #ifsSnack.ifs-push-toast.ifs-push-show {
+        opacity: 1;
+        visibility: visible;
+    }
+}

@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "Oda Aç";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-7 col-xl-5">
+        <div class="card card-party rounded-4 p-4 text-white mb-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="pulse-dot"></div>
+                <h1 class="h3 mb-0">Yeni parti odası 🔥</h1>
+            </div>
+
+            <p class="text-white-50 mb-4">
+                Küçük bir takma ad yeter — sunucuya seni hatırlatacak gizli bir çerez bırakıyoruz, böylece odaya çık çık gelebilirsin.
+            </p>
+
+            <form asp-action="Create" asp-controller="Room" method="post" class="needs-validation">
+                @Html.AntiForgeryToken()
+                <label class="form-label fw-semibold">Takma adın</label>
+                <input class="form-control form-control-lg bg-dark text-white border-0 rounded-4 mb-3" name="nickname" maxlength="32" placeholder="Misafir" required />
+
+                <button class="btn btn-accent btn-lg w-100 rounded-pill fw-bold" type="submit">Masayı Hazırla</button>
+            </form>
+
+            <p class="small text-white-50 mt-3 mb-0 text-center">
+                Zaten arkadaşından kod aldıysan
+                <a class="fw-semibold text-white" asp-action="Join" asp-controller="Room">Katıl’a</a> uğra.
+            </p>
+        </div>
+    </div>
+</div>

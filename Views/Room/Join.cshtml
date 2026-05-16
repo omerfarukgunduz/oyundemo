@@ -1,0 +1,36 @@
+@model IfsaKlasik.Web.Models.ViewModels.JoinVm
+
+@{
+    ViewData["Title"] = "Oyuna katıl!";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-6">
+        <div class="card card-party rounded-4 p-4 text-white">
+            <h1 class="h3 mb-2">Kodu gir takımla buluş</h1>
+            <p class="text-white-50 mb-4">Davet bağlantından veya dostunun yüksek sesinden duyduğun kodu yaz.</p>
+
+            <form asp-action="Join" asp-controller="Room" method="post">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" asp-for="Code">Oda kodu</label>
+                    <input class="form-control form-control-lg text-uppercase bg-dark border-0 text-white rounded-4" asp-for="Code" placeholder="ABCDEF" />
+                    <span asp-validation-for="Code" class="text-warning small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" asp-for="Nickname">Sen kimsin?</label>
+                    <input class="form-control bg-dark border-0 text-white rounded-4" asp-for="Nickname" maxlength="32" placeholder="Misafir" />
+                </div>
+
+                <button class="btn btn-accent btn-lg w-100 rounded-pill fw-bold" type="submit">İçeri hopla</button>
+                <partial name="_ValidationScriptsPartial" />
+            </form>
+
+            <p class="small text-white-50 text-center mb-0 mt-3">
+                Masayı ilk sen açıyorsan
+                <a class="fw-semibold text-white" asp-action="Create" asp-controller="Room">Oda oluştur</a>.
+            </p>
+        </div>
+    </div>
+</div>

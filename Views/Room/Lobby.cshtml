@@ -1,0 +1,94 @@
+﻿@model LobbyPageVm
+@{
+    ViewData["Title"] = $"Lobby - {Model.RoomCode}";
+    var bootPayload = JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["hubPath"] = Url.Content("~/hubs/game") ?? "/hubs/game",
+        ["scene"] = "lobby",
+        ["roomCode"] = Model.RoomCode,
+        ["identity"] = Model.MemberGuid.ToString("N"),
+        ["nickname"] = Model.Nickname,
+        ["isHost"] = Model.IsHost,
+        ["selectedPackageId"] = Model.SelectedPackageId ?? Model.Packages.FirstOrDefault()?.Id,
+        ["timerPreset"] = Model.TimerSecondsConfigured,
+        ["inviteUrl"] = Model.InviteUrl,
+    }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+}
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="card card-party rounded-4 p-4 text-white mb-4">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <p class="text-white-50 text-uppercase small mb-2" style="letter-spacing:.08em;">Room code</p>
+                    <p class="display-5 fw-bold text-white mb-4">@Model.RoomCode</p>
+                    <label class="form-label fw-semibold">Invite link</label>
+                    <div class="input-group flex-column flex-lg-row gap-2 mb-4">
+                        <input id="inviteLink" readonly class="form-control form-control-lg bg-dark border-0 text-white rounded-4 px-4" value="@Model.InviteUrl" />
+                        <button type="button" id="inviteCopyBtn" class="btn btn-light rounded-pill px-5 fw-semibold ms-lg-2 shadow-sm text-dark align-self-lg-center">Copy</button>
+                    </div>
+                    <img id="inviteQr" width="240" height="240" alt="" class="bg-white rounded-4 p-3 shadow-sm mx-auto mx-lg-0 d-block" decoding="async" />
+                </div>
+                <div class="col-lg-5">
+                    @if (Model.IsHost)
+                    {
+                        <div class="rounded-4 p-4 bg-dark bg-opacity-25 border border-secondary border-opacity-50 h-100">
+                            <div class="d-flex align-items-center gap-2 mb-4">
+                                <span class="pulse-dot"></span>
+                                <div>
+                                    <p class="h5 fw-bold text-white mb-0">Host control</p>
+                                    <small class="text-white-50">Paket sec, sure ayarla, herkesi firlattir.</small>
+                                </div>
+                            </div>
+                            <label class="form-label fw-semibold">Soru paketi</label>
+                            <select id="packageSelect" class="form-select bg-dark border-0 text-white rounded-pill px-4 py-3 mb-4">
+                                @foreach (var p in Model.Packages)
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </select>
+
+                            <label class="form-label fw-semibold">Tur zamanlayicisi</label>
+                            <select id="timerSelect" class="form-select bg-dark border-0 text-white rounded-pill px-4 py-3 mb-4">
+                                <option value="0">Kapalı</option>
+                                <option value="30">30 sn</option>
+                                <option value="45">45 sn</option>
+                                <option value="60">60 sn</option>
+                            </select>
+
+                            <button id="startGameBtn" type="button" class="btn btn-accent w-100 rounded-pill py-4 fw-bold">Oyuna baslat</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="rounded-4 p-4 glass-chip h-100">
+                            <p class="fw-bold text-white mb-3">Kurucu start tusuna basinca herkes oyun sahnesine tasinir.</p>
+                            <img id="joinQrPassive" width="220" height="220" alt="" class="bg-white rounded-4 p-2 shadow-sm d-block mx-auto" decoding="async" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="card card-party rounded-4 p-4 text-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h4 mb-0">Oyuncular</h2>
+                <span class="badge text-bg-light text-dark" id="lobbyPresenceCount">0</span>
+            </div>
+            <div id="lobbyPresence" class="d-grid gap-2 mb-4"></div>
+            <label class="fw-semibold form-label">Takma ad</label>
+            <div class="input-group mb-4">
+                <input id="lobbyNickname" maxlength="32" class="form-control bg-dark border-0 text-white rounded-start-pill px-4 py-3" value="@Model.Nickname" placeholder="Nickname" />
+                <button id="nicknameSaveBtn" type="button" class="btn btn-light rounded-end-pill px-5 fw-semibold shadow-sm text-dark">Kaydet</button>
+            </div>
+            <small class="text-white-50 d-block mb-3">Davet adresi yeniden yazilmak istenirse arkadasina whatsapp atan senden olur.</small>
+            <small class="text-white-50">Davet adresi kodu yanlis yazmissa bile cezalandirilmiyorsun, sakin ol.</small>
+        </div>
+    </div>
+</div>
+
+<script defer>
+window.ifsaPartyBoot = @Html.Raw(bootPayload);
+</script>
+<script defer src="~/js/ifsak-realtime.js" asp-append-version="true"></script>

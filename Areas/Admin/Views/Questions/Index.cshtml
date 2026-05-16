@@ -1,0 +1,46 @@
+@model QuestionsIndexVm
+@{
+    ViewData["Title"] = $"Paket kartları #{Model.PackageId}";
+}
+
+<div class="d-flex flex-column flex-lg-row gap-5 justify-content-between align-items-start mb-5">
+    <div>
+        <h1 class="h3 fw-bold text-white mb-2">@(Model.PackageName) soruları</h1>
+        <small class="text-white-50">Paket #@Model.PackageId — soru metni 2000 karakteri geçmez.</small>
+    </div>
+    <div class="d-grid gap-3">
+        <a class="btn btn-accent fw-bold rounded-pill px-6 py-3" asp-area="Admin" asp-controller="Questions" asp-action="Create" asp-route-packageId="@Model.PackageId">➕ Yeni kart</a>
+        <a class="btn btn-outline-light rounded-pill px-6 py-3" asp-area="Admin" asp-controller="Packages" asp-action="Index">← Paket liste</a>
+    </div>
+</div>
+
+<div class="d-grid gap-4">
+    @foreach (var item in Model.Questions)
+    {
+        <article class="card card-party rounded-4 p-4 text-white mb-4">
+            <div class="d-flex flex-column flex-lg-row gap-5 justify-content-between">
+                <p class="mb-4 mb-lg-0 flex-grow-1 text-white lh-lg">@item.Text</p>
+
+                <div class="btn-group-vertical btn-group-lg align-self-lg-end">
+                    <a class="btn btn-light rounded-pill mb-4 mb-lg-0 px-5 fw-semibold text-dark" asp-area="Admin" asp-controller="Questions" asp-action="Edit" asp-route-id="@item.Id">✏️ Düzenle</a>
+
+                    <form asp-area="Admin" asp-controller="Questions" asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-outline-danger fw-semibold rounded-pill px-5" type="submit" onclick="return confirm('Kart kaybolunca geri çıkmıyor.');">🗑️ Sil</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    }
+
+    @if (Model.Questions.Count == 0)
+    {
+        <div class="card card-party rounded-4 p-6 text-white text-center">
+            <p class="mb-0 text-white-50">Bu kutuda daha soru kartı beklenmez gibi 👀 CSV mi patlatsın?</p>
+            <div class="d-flex justify-content-center gap-5 mt-6 flex-column flex-xl-row mt-6">
+                <a class="btn btn-accent fw-bold rounded-pill px-6 py-3" asp-action="Create" asp-controller="Questions" asp-area="Admin" asp-route-packageId="@Model.PackageId">Yeni kart ekle ⚡️</a>
+                <a class="btn btn-outline-light rounded-pill px-6 py-3" asp-area="Admin" asp-controller="CsvImport" asp-action="Index">📬 CSV yüklemeden olmuyor işte</a>
+            </div>
+        </div>
+    }
+</div>

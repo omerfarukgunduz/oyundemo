@@ -1,0 +1,42 @@
+@model AdminLoginVm
+@{
+    ViewData["Title"] = "Admin Giriş";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-xl-5">
+        <div class="card card-party rounded-4 p-5 text-white">
+            <div class="text-center mb-4">
+                <h1 class="h3 fw-bold text-white mb-2 gradient-text">Yönetici girişi</h1>
+                <small class="text-white-75">Davet etmeyin, sırlar sıradan daha hassas.</small>
+            </div>
+
+            <form asp-area="Admin" asp-controller="Login" asp-action="Index" method="post" asp-route-returnUrl="@Model.ReturnUrl" class="needs-validation">
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                @Html.AntiForgeryToken()
+
+                <div class="mb-4">
+                    <label class="fw-semibold form-label" asp-for="Email"></label>
+                    <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="Email" maxlength="254" autofocus autocomplete="username" />
+                    <span asp-validation-for="Email" class="text-warning small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label class="fw-semibold form-label" asp-for="Password"></label>
+                    <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="Password" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="text-warning small"></span>
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input bg-dark border-0 shadow-none" asp-for="RememberMe" id="rememberMeCheckbox" />
+                    <label class="form-check-label" for="rememberMeCheckbox">Beni sakla 🔐</label>
+                </div>
+
+                <button class="btn btn-accent w-100 rounded-pill py-4 fw-semibold mb-4" type="submit">Masaya çık 💻</button>
+                <partial name="_ValidationScriptsPartial" />
+            </form>
+
+            <p class="small text-white-75 text-center mb-0"><a asp-controller="Home" asp-area="" asp-action="Index" class="text-white fw-semibold">← Ana parti</a></p>
+        </div>
+    </div>
+</div>

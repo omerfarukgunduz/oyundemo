@@ -1,0 +1,129 @@
+﻿@{
+    ViewData["Title"] = "Parti kart oyunu — İFŞA Klasik";
+}
+
+@* --- Hero --- *@
+<section class="row align-items-center g-4 pb-4 pb-lg-5">
+    <div class="col-lg-7">
+        <div class="d-inline-flex align-items-center gap-2 badge-live rounded-pill px-3 py-2 mb-3">
+            <span class="pulse-dot"></span>
+            <small class="text-uppercase fw-semibold" style="letter-spacing:.06em;">Masada canlı • Anon kartlar • Sohbet</small>
+        </div>
+        <h1 class="display-5 fw-bold text-white lh-sm mb-3">
+            <span class="gradient-text">İFŞA&nbsp;Klasik</span> — yüz yüze kahkaha, tek linkle masada!
+        </h1>
+        <p class="lead text-white-50 mb-4">
+            Bir arkadaş <strong class="text-white">oda açar</strong>, kodu paylaşır; herkes telefondan veya bilgisayardan katılır.
+            Sorular gelir, cevaplar <strong class="text-white">anonim</strong> toplanır, kartlar <strong class="text-white">karışık</strong> açılır. Kimin yazdığı belli olmaz; masayı patlatan kahkahanın sahibi siz olun.
+        </p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <a class="btn btn-accent rounded-pill px-4 py-3 fw-bold" asp-controller="Room" asp-action="Create">Oda oluştur</a>
+            <a class="btn btn-outline-light rounded-pill px-4 py-3 fw-semibold" asp-controller="Room" asp-action="Join">Oyuna katıl</a>
+            <a class="btn btn-link text-white-50 px-3" href="#nasil">Nasıl oynanır ↓</a>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card card-party rounded-4 p-4 text-white border border-warning border-opacity-25">
+            <h2 class="h5 fw-semibold gradient-text mb-3">30 saniyede özet</h2>
+            <ol class="ps-3 text-white-50 mb-0 small lh-lg">
+                <li class="mb-2">Kurucu oda + takma ad; diğerleri kod veya linkle girer.</li>
+                <li class="mb-2">Lobby’de paket ve süre seçilir → <strong class="text-white">Oyuna başlat</strong>.</li>
+                <li class="mb-2">Herkes yazılı cevabını gönderir; süre dolunca kartlar karışık gösterilir.</li>
+                <li class="mb-0">Sağda sohbet; kurucu <strong class="text-white">Sıradaki soru</strong> ile devam eder.</li>
+            </ol>
+        </div>
+    </div>
+</section>
+
+@* --- Nasil oynanir (landing) --- *@
+<section id="nasil" class="py-5 border-top border-light border-opacity-10">
+    <div class="text-center mb-5">
+        <h2 class="h3 fw-bold text-white mb-2">Nasıl oynanır?</h2>
+        <p class="text-white-50 mb-0 col-lg-8 mx-auto">Arkadaş grubunla sıfır kurulumla başla: tarayıcı yeter.</p>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-party rounded-4 p-4 h-100 text-white">
+                <p class="text-warning fw-bold small mb-2">Adım 1</p>
+                <h3 class="h6 gradient-text fw-bold mb-3">Oda veya katılım</h3>
+                <p class="small text-white-50 mb-0">
+                    Kurucu <strong class="text-white">Oda oluştur</strong> der, takma adını yazar ve paylaşım kodunu / davet bağlantısını gruba atar.
+                    Herkes <strong class="text-white">Oyuna katıl</strong> ile aynı odaya girer; çerez sayesinde aynı cihazda tekrar girmene gerek kalmaz.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-party rounded-4 p-4 h-100 text-white">
+                <p class="text-warning fw-bold small mb-2">Adım 2</p>
+                <h3 class="h6 gradient-text fw-bold mb-3">Lobby hazırlığı</h3>
+                <p class="small text-white-50 mb-0">
+                    Kurucu <strong class="text-white">soru paketini</strong> seçer (Klasik, Cesur veya ekledikleriniz).
+                    İstersen tur için <strong class="text-white">sayaç</strong> seçilir. Herkes bağlandığında isimleri listede görürsün.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-party rounded-4 p-4 h-100 text-white">
+                <p class="text-warning fw-bold small mb-2">Adım 3</p>
+                <h3 class="h6 gradient-text fw-bold mb-3">Tur ve anonim cevap</h3>
+                <p class="small text-white-50 mb-0">
+                    <strong class="text-white">Oyuna başlat</strong> ile herkes oyun sayfasına geçer. Soruyu görürsünüz; cevaplar <strong class="text-white">kim yazdı görünmez</strong> şekilde toplanır.
+                    Süre biter ya da kurucu erken kartları açar.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-party rounded-4 p-4 h-100 text-white">
+                <p class="text-warning fw-bold small mb-2">Adım 4</p>
+                <h3 class="h6 gradient-text fw-bold mb-3">Sonuç ve partinin devamı</h3>
+                <p class="small text-white-50 mb-0">
+                    Kartlar karışık sırayla açılır; bu turda cevaplarda en çok geçen takma ad üstte özetlenir.
+                    Sağdaki sohbette adınla yazarsın. Kurucu <strong class="text-white">Sıradaki soru</strong> ile parti bitene kadar yeni tur açabilir.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* --- Ozellikler --- *@
+<section class="pb-5">
+    <h2 class="h5 fw-bold text-white mb-4 text-lg-center">Neden bu oyunda takıl?</h2>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card card-party rounded-4 p-3 h-100">
+                <h3 class="h6 fw-bold text-white mb-2">Canlı bağlantı</h3>
+                <p class="small text-white-50 mb-0">SignalR ile masa aynı soruda, aynı saniyede kenetlenir.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card card-party rounded-4 p-3 h-100">
+                <h3 class="h6 fw-bold text-white mb-2">Anon kartlar</h3>
+                <p class="small text-white-50 mb-0">Karışık kartlar yüz yüze okununca kim kime patladı daha da güldürür.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card card-party rounded-4 p-3 h-100">
+                <h3 class="h6 fw-bold text-white mb-2">Paket dünyası</h3>
+                <p class="small text-white-50 mb-0">Admin’den yüzlerce soru ya da CSV ile kendi içeriğini ekle.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card card-party rounded-4 p-3 h-100">
+                <h3 class="h6 fw-bold text-white mb-2">Masa bazlı çoklu oda</h3>
+                <p class="small text-white-50 mb-0">Farklı gruplar aynı sunucuda ayrı kodlarla paralel oynayabilir.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* --- CTA --- *@
+<section class="rounded-4 p-4 p-lg-5 glass-chip text-white text-center mb-5">
+    <h2 class="h4 fw-bold mb-3">Hazırsanız masa açılıyor</h2>
+    <p class="text-white-50 mb-4 col-lg-6 mx-auto">Kodu paylaş, bir turda gerçek kahkaharışı yakalayın.</p>
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+        <a class="btn btn-accent rounded-pill px-5 py-3 fw-bold" asp-controller="Room" asp-action="Create">Hemen oda oluştur</a>
+        <a class="btn btn-outline-light rounded-pill px-5 py-3 fw-semibold" asp-controller="Room" asp-action="Join">Kodum var — katılıyorum</a>
+    </div>
+</section>
