@@ -7,7 +7,6 @@
 
     const lobbyScene = cfg.scene === 'lobby';
     const playScene = cfg.scene === 'play';
-    let timerHandle;
     /** Play ekranında cevap alanı ile senkron: yeni turda temizlemek için. */
     let lastAnswerSyncedRoundId;
 
@@ -19,6 +18,16 @@
     connection.on('lobbyUpdated', (people) => renderPresence(Array.isArray(people) ? people : []));
     connection.on('stateFull', handleStateEnvelope);
     connection.on('chatMessage', appendChatMessage);
+    connection.on('kickedFromRoom', async () => {
+        toast('Oda kurucusu seni odadan cikardi.');
+        try {
+            await connection.stop();
+        } catch (_) {
+            // ignore
+        }
+
+        window.location.assign(`/Room/Join?code=${encodeURIComponent(cfg.roomCode ?? '')}`);
+    });
 
     async function invokeHub(method, ...args) {
         try {
@@ -41,8 +50,10 @@
             return;
         }
 
+        wireHostKickDelegation();
         if (lobbyScene) {
             wireLobbyInputs();
+            wireRoomChat();
             buildLobbyQrArtifacts();
             startRealtime();
         } else if (playScene) {
@@ -62,7 +73,7 @@
         bindClick('sendAnswerBtn', sendAnswerClicked);
         bindClick('hostRevealEarlyBtn', () => invokeHub('HostRevealNow', cfg.roomCode, hyphenate(cfg.identity)));
         bindClick('hostNextRoundBtn', () => invokeHub('HostNextQuestion', cfg.roomCode, hyphenate(cfg.identity)));
-        wirePlayChat();
+        wireRoomChat();
         setNickBadge(cfg.nickname);
     }
 
@@ -83,7 +94,7 @@
         }
     }
 
-    function wirePlayChat() {
+    function wireRoomChat() {
         bindClick('chatSendBtn', sendChatClicked);
         const inp = document.getElementById('chatInput');
         if (!inp) {
@@ -134,14 +145,8 @@
             await invokeHub('HostSelectPackage', cfg.roomCode, hyphenate(cfg.identity), id);
         });
 
-        bindChange('timerSelect', async () => {
-            const secs = Number.parseInt(getInputValue('timerSelect'), 10);
-            await invokeHub('HostSetTimer', cfg.roomCode, hyphenate(cfg.identity), secs);
-        });
-
         bindClick('startGameBtn', async () => invokeHub('HostStart', cfg.roomCode, hyphenate(cfg.identity)));
 
-        setSelectValueSafe('timerSelect', cfg.timerPreset ?? 0);
         if (cfg.selectedPackageId) {
             setSelectValueSafe('packageSelect', cfg.selectedPackageId);
         }
@@ -177,6 +182,10 @@
     async function sendAnswerClicked() {
         hideFeedback();
         const textArea = document.getElementById('answerField');
+        if (textArea?.disabled) {
+            return;
+        }
+
         const text = (textArea?.value || '').trim();
         if (!text) {
             toast('Önce kısa bir cevap yaz.');
@@ -186,6 +195,7 @@
         const res = await invokeHub('SubmitAnswer', cfg.roomCode, hyphenate(cfg.identity), text);
         if (res?.ok) {
             toast('Cevap gönderildi.');
+            setAnswerComposerLocked(true);
         }
     }
 
@@ -211,7 +221,47 @@
             renderPresence(state.people || []);
         }
 
-        applyTimer(state);
+        if (playScene) {
+            updatePlayHostKickPanel(state);
+        }
+    }
+
+    /** Host “At” tuslari (delegasyon, tek kayit). */
+    function wireHostKickDelegation() {
+        if (!cfg.isHost) {
+            return;
+        }
+
+        if (document.documentElement.dataset.ifsHostKickBound === '1') {
+            return;
+        }
+
+        document.documentElement.dataset.ifsHostKickBound = '1';
+        document.addEventListener('click', async (evt) => {
+            const btn = evt.target.closest('[data-action="host-kick-member"]');
+            if (!btn) {
+                return;
+            }
+
+            if (!cfg.isHost) {
+                return;
+            }
+
+            const rawId = btn.getAttribute('data-member-id');
+            if (
+                !rawId ||
+                comparableMemberGuid(rawId) === comparableMemberGuid(cfg.identity)
+            ) {
+                return;
+            }
+
+            if (!window.confirm('Bu oyuncuyu odadan cikarmak istiyor musun?')) {
+                return;
+            }
+
+            evt.preventDefault();
+            await invokeHub('HostKickMember', cfg.roomCode, hyphenate(cfg.identity), hyphenate(rawId));
+        });
     }
 
     function hydratePlayScreens(state) {
@@ -220,22 +270,6 @@
         toggleSection('revealPanel', state.phase === 'Revealed');
         toggleSection('hostRevealPanel', !!(state.phase === 'CollectingAnswers' && state.youAreHost));
         toggleSection('hostNextPanel', !!(state.phase === 'Revealed' && state.youAreHost));
-
-        const mentionPanel = document.getElementById('mentionWinnerPanel');
-        const mentionName = document.getElementById('mentionWinnerName');
-        const mentionDetail = document.getElementById('mentionWinnerDetail');
-        if (mentionPanel && mentionName && mentionDetail) {
-            const count = Number(state.highlightMentionCount ?? 0);
-            if (state.phase === 'Revealed' && state.highlightNickname && count > 0) {
-                mentionPanel.style.display = '';
-                mentionName.textContent = state.highlightNickname;
-                mentionDetail.textContent = `${count} kez yazildi`;
-            } else {
-                mentionPanel.style.display = 'none';
-                mentionName.textContent = '';
-                mentionDetail.textContent = '';
-            }
-        }
 
         if (state.phase === 'CollectingAnswers') {
             const rid = state.currentRoundId ?? null;
@@ -249,6 +283,11 @@
             }
 
             setQuestion(state.questionText);
+            syncAnswerComposerLockedFromState(state);
+            updateAnswerProgressIndicator(state);
+        } else {
+            setAnswerComposerLocked(false);
+            hideAnswerProgressIndicator();
         }
 
         if (state.phase === 'Revealed' && Array.isArray(state.shuffledCards)) {
@@ -256,25 +295,124 @@
         }
     }
 
-    function applyTimer(state) {
-        clearInterval(timerHandle);
-        const ribbon = document.getElementById('timerBoard');
-        const ticker = document.getElementById('timerValue');
-        if (!ribbon || !ticker) {
+    function updatePlayHostKickPanel(state) {
+        const panel = document.getElementById('playHostKickPanel');
+        const list = document.getElementById('playHostKickList');
+        if (!panel || !list) {
             return;
         }
 
-        if (!state?.roundEndsUtc) {
-            ribbon.style.display = 'none';
+        const inPlay = state.phase === 'CollectingAnswers' || state.phase === 'Revealed';
+        if (!cfg.isHost || !inPlay) {
+            panel.style.display = 'none';
+            list.innerHTML = '';
             return;
         }
 
-        ribbon.style.display = '';
-        const deadline = Date.parse(state.roundEndsUtc);
-        timerHandle = setInterval(() => {
-            const seconds = Math.ceil((deadline - Date.now()) / 1000);
-            ticker.textContent = `${Math.max(seconds, 0)}s`;
-        }, 250);
+        panel.style.display = '';
+        mountKickableGuests(list, Array.isArray(state.people) ? state.people : []);
+    }
+
+    /** Lobide liste + sayac; oyunda sadece `updatePlayHostKickPanel` kullanir. */
+    function mountKickableGuests(container, entries) {
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = '';
+        entries.forEach((guest) => {
+            addKickableGuestRow(container, guest);
+        });
+    }
+
+    function guestMemberGuidString(guest) {
+        const v = guest.publicId ?? guest.PublicId ?? guest.publicID;
+        return v !== undefined && v !== null ? String(v) : '';
+    }
+
+    function addKickableGuestRow(container, guest) {
+        const row = document.createElement('div');
+        row.className =
+            'd-flex flex-column flex-md-row gap-2 justify-content-between align-items-md-center glass-chip rounded-pill px-4 py-3 text-white mb-2';
+        const nickname = encodeText(guest.nickname ?? 'Oyuncu');
+        const vibe = guest.isHost
+            ? '☆ HOST'
+            : guest.isConnected
+                ? '🟢 canlı masada'
+                : '💤 ara verdi';
+
+        let kickMarkup = `<span class="small">${vibe}</span>`;
+        if (cfg.isHost && guest.isHost === false) {
+            const midRaw = encodeAttr(guestMemberGuidString(guest));
+            kickMarkup +=
+                `<button type="button" class="btn btn-sm btn-outline-danger rounded-pill" data-action="host-kick-member" data-member-id="${midRaw}">Masadan cikar</button>`;
+        }
+
+        row.innerHTML = `<span class="fw-semibold">${nickname}</span><div class="d-flex gap-2 align-items-center">${kickMarkup}</div>`;
+        container.appendChild(row);
+    }
+
+    function encodeAttr(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;');
+    }
+
+    function comparableMemberGuid(raw) {
+        return String(raw ?? '')
+            .replace(/-/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function syncAnswerComposerLockedFromState(state) {
+        const locked = Boolean(state.alreadySubmittedAnswerThisRound);
+        setAnswerComposerLocked(locked);
+    }
+
+    function hideAnswerProgressIndicator() {
+        const line = document.getElementById('answerProgressLine');
+        if (line) {
+            line.style.display = 'none';
+        }
+    }
+
+    function updateAnswerProgressIndicator(state) {
+        const line = document.getElementById('answerProgressLine');
+        const text = document.getElementById('answerProgressText');
+        if (!line || !text) {
+            return;
+        }
+
+        const done = Number(state.answersSubmittedCount ?? 0);
+        const total = Number(state.answersRoomMemberTotal ?? 0);
+        line.style.display = '';
+        text.textContent = `${done}/${total}`;
+    }
+
+    function setAnswerComposerLocked(locked) {
+        const textarea = document.getElementById('answerField');
+        const sendBtn = document.getElementById('sendAnswerBtn');
+        const notice = document.getElementById('answerSentNotice');
+        if (textarea) {
+            textarea.disabled = locked;
+            if (locked && !textarea.value.trim()) {
+                textarea.placeholder = 'Cevabın gönderildi';
+            }
+
+            if (!locked) {
+                textarea.placeholder = 'En dramatik tepkiyi seç ve yaz 😉';
+            }
+        }
+
+        if (sendBtn) {
+            sendBtn.disabled = locked;
+        }
+
+        if (notice) {
+            notice.style.display = locked ? '' : 'none';
+        }
     }
 
     function setQuestion(text) {
@@ -300,21 +438,8 @@
             return;
         }
 
-        hostWrap.innerHTML = '';
         badge.textContent = entries.length.toString();
-
-        entries.forEach((guest) => {
-            const row = document.createElement('div');
-            row.className = 'd-flex justify-content-between align-items-center glass-chip rounded-pill px-4 py-3 text-white mb-2';
-            const nickname = encodeText(guest.nickname ?? 'Oyuncu');
-            const vibe = guest.isHost
-                ? '☆ HOST'
-                : guest.isConnected
-                    ? '🟢 canlı masada'
-                    : '💤 ara verdi';
-            row.innerHTML = `<span class="fw-semibold">${nickname}</span><span class="small ms-3 text-end">${vibe}</span>`;
-            hostWrap.appendChild(row);
-        });
+        mountKickableGuests(hostWrap, entries);
     }
 
     function animateDeck(cards) {

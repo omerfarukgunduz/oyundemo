@@ -10,12 +10,11 @@
         ["nickname"] = Model.Nickname,
         ["isHost"] = Model.IsHost,
         ["selectedPackageId"] = Model.SelectedPackageId ?? Model.Packages.FirstOrDefault()?.Id,
-        ["timerPreset"] = Model.TimerSecondsConfigured,
         ["inviteUrl"] = Model.InviteUrl,
     }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 }
 
-<div class="row g-4">
+<div class="row g-4 align-items-stretch">
     <div class="col-xl-7">
         <div class="card card-party rounded-4 p-4 text-white mb-4">
             <div class="row g-4">
@@ -37,7 +36,7 @@
                                 <span class="pulse-dot"></span>
                                 <div>
                                     <p class="h5 fw-bold text-white mb-0">Host control</p>
-                                    <small class="text-white-50">Paket sec, sure ayarla, herkesi firlattir.</small>
+                                    <small class="text-white-50">Paket sec, herkesi firlattir.</small>
                                 </div>
                             </div>
                             <label class="form-label fw-semibold">Soru paketi</label>
@@ -46,14 +45,6 @@
                                 {
                                     <option value="@p.Id">@p.Name</option>
                                 }
-                            </select>
-
-                            <label class="form-label fw-semibold">Tur zamanlayicisi</label>
-                            <select id="timerSelect" class="form-select bg-dark border-0 text-white rounded-pill px-4 py-3 mb-4">
-                                <option value="0">Kapalı</option>
-                                <option value="30">30 sn</option>
-                                <option value="45">45 sn</option>
-                                <option value="60">60 sn</option>
                             </select>
 
                             <button id="startGameBtn" type="button" class="btn btn-accent w-100 rounded-pill py-4 fw-bold">Oyuna baslat</button>
@@ -70,20 +61,34 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-5">
-        <div class="card card-party rounded-4 p-4 text-white h-100">
+    <div class="col-xl-5 d-flex flex-column gap-4">
+        <div class="card card-party rounded-4 p-4 text-white flex-shrink-0">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2 class="h4 mb-0">Oyuncular</h2>
                 <span class="badge text-bg-light text-dark" id="lobbyPresenceCount">0</span>
             </div>
             <div id="lobbyPresence" class="d-grid gap-2 mb-4"></div>
             <label class="fw-semibold form-label">Takma ad</label>
-            <div class="input-group mb-4">
+            <div class="input-group mb-3">
                 <input id="lobbyNickname" maxlength="32" class="form-control bg-dark border-0 text-white rounded-start-pill px-4 py-3" value="@Model.Nickname" placeholder="Nickname" />
                 <button id="nicknameSaveBtn" type="button" class="btn btn-light rounded-end-pill px-5 fw-semibold shadow-sm text-dark">Kaydet</button>
             </div>
-            <small class="text-white-50 d-block mb-3">Davet adresi yeniden yazilmak istenirse arkadasina whatsapp atan senden olur.</small>
+            <small class="text-white-50 d-block mb-2">Davet adresi yeniden yazilmak istenirse arkadasina whatsapp atan senden olur.</small>
             <small class="text-white-50">Davet adresi kodu yanlis yazmissa bile cezalandirilmiyorsun, sakin ol.</small>
+        </div>
+
+        <div id="roomChatPanel" class="card card-party rounded-4 p-4 text-white flex-grow-1 d-flex flex-column mt-0 mb-0">
+            <h3 class="h5 gradient-text fw-bold mb-2">Lobby sohbeti</h3>
+            <p class="text-white-50 small mb-3">Oyuncular takma adlariyla yaziyor — oyuna girmeden de buradasin.</p>
+
+            <div id="chatMessages" class="party-chat-log rounded-4 p-3 mb-3 flex-grow-1 text-white small" style="min-height: 220px;" aria-live="polite" role="log"></div>
+
+            <label class="form-label fw-semibold small mb-2" for="chatInput">Mesaj</label>
+            <div class="input-group mb-2">
+                <input id="chatInput" type="text" maxlength="400" autocomplete="off" placeholder="Masaya yaz..." class="form-control rounded-start-pill bg-dark border-0 text-white px-4 py-3" />
+                <button id="chatSendBtn" type="button" class="btn btn-accent rounded-end-pill px-4 fw-semibold">Gonder</button>
+            </div>
+            <small class="text-white-50">Enter ile gonder • max 400 karakter</small>
         </div>
     </div>
 </div>

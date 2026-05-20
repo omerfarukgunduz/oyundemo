@@ -24,26 +24,30 @@
                     <button id="inviteCopyFloating" type="button" class="btn btn-outline-light btn-sm rounded-pill mt-3 px-4">Linki kopyala</button>
                 </div>
             </div>
+
+            @if (Model.IsHost)
+            {
+                <div id="playHostKickPanel" class="rounded-4 p-4 glass-chip mb-4" style="display:none;">
+                    <p class="text-white-50 small fw-semibold text-uppercase mb-3" style="letter-spacing:.06em;">Oyuncu yonetimi</p>
+                    <div id="playHostKickList" class="d-grid gap-2"></div>
+                </div>
+            }
+
             <section id="collectPanel" style="display:none;">
                 <p class="text-white-50 fw-semibold text-uppercase small mb-2" style="letter-spacing:.06em;">Soru</p>
-                <h2 id="questionTitle" class="h3 fw-semibold lh-base text-white mb-4">...</h2>
-
-                <div id="timerBoard" class="rounded-4 p-4 glass-chip mb-4" style="display:none;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-white-75">Zaman dolmadan yanitini gonder</small>
-                        <span id="timerValue" class="h4 fw-bold text-warning mb-0">...</span>
-                    </div>
-                </div>
+                <h2 id="questionTitle" class="h3 fw-semibold lh-base text-white mb-3">...</h2>
+                <p id="answerProgressLine" class="text-white-50 small mb-4 fw-semibold" style="display:none;"><span>Cevaplar:</span> <span id="answerProgressText" class="text-warning ms-1"></span></p>
 
                 <label class="form-label fw-semibold">Anonim cevap</label>
-                <textarea id="answerField" maxlength="500" rows="7" placeholder="En dramatik tepkiyi seç ve yaz 😉" class="form-control rounded-4 bg-dark border-0 text-white px-4 py-3 mb-4"></textarea>
+                <textarea id="answerField" maxlength="500" rows="7" placeholder="En dramatik tepkiyi seç ve yaz 😉" class="form-control rounded-4 bg-dark border-0 text-white px-4 py-3 mb-2"></textarea>
+                <p id="answerSentNotice" class="text-success small fw-semibold mb-4" style="display:none;">Bu soruya cevabın gönderildi; bu turda değiştiremezsin.</p>
                 <div class="row g-3">
                     <div class="col-md-8">
                         <button id="sendAnswerBtn" type="button" class="btn btn-accent w-100 rounded-pill py-3 fw-bold">Gonder ve guldur masayi</button>
                     </div>
                     <div class="col-md-4" id="hostRevealPanel" style="display:none;">
                         <button id="hostRevealEarlyBtn" type="button" class="btn btn-light w-100 rounded-pill py-3 fw-semibold shadow-sm text-dark">Hemen ac</button>
-                        <small class="text-white-50 mt-3 d-inline-block mb-4">Masada kahkaha yukselince acmayi beklemek gerekmese de host zorlasabilir 👀.</small>
+                        <small class="text-white-50 mt-3 d-inline-block mb-4">Herkes cevabi gonderdiginde kartlar otomatik acilir. Kimse aksamazsa hep sen ac 👀.</small>
                     </div>
                 </div>
 
@@ -51,11 +55,6 @@
             </section>
 
             <section id="revealPanel" style="display:none;">
-                <div id="mentionWinnerPanel" class="rounded-4 p-4 glass-chip mb-4 border border-warning border-opacity-25" style="display:none;">
-                    <p class="text-white-50 small text-uppercase mb-2" style="letter-spacing:.06em;">Bu turda cevaplarda en cok gecen isim</p>
-                    <p id="mentionWinnerName" class="display-6 fw-bold gradient-text mb-0 lh-sm"></p>
-                    <p id="mentionWinnerDetail" class="text-white-50 small mt-2 mb-0"></p>
-                </div>
                 <p class="fw-semibold gradient-text mb-4">Masadaki anon kartlar 💬</p>
                 <div id="deckGrid" class="card-grid mb-4"></div>
 

@@ -20,10 +20,10 @@ public interface IGameRoomService
     Task<Result> SetNicknameAsync(string roomCodeNormalized, Guid memberPublicId, Guid? actingAsHostPublicId,
         string nickname, CancellationToken ct = default);
 
-    Task<Result> HostSetPackageAsync(string roomCodeNormalized, Guid memberPublicId, int packageId,
+    Task<Result> HostKickMemberAsync(string roomCodeNormalized, Guid hostPublicId, Guid targetPublicId,
         CancellationToken ct = default);
 
-    Task<Result> HostSetTimerAsync(string roomCodeNormalized, Guid memberPublicId, int seconds,
+    Task<Result> HostSetPackageAsync(string roomCodeNormalized, Guid memberPublicId, int packageId,
         CancellationToken ct = default);
 
     Task<Result> HostStartGameAsync(string roomCodeNormalized, Guid memberPublicId, CancellationToken ct = default);
@@ -55,8 +55,9 @@ public sealed record GameHubState(
     IReadOnlyList<LobbyPersonDto> People,
     bool YouAreHost,
     string YourNickname,
-    string? HighlightNickname,
-    int HighlightMentionCount);
+    bool AlreadySubmittedAnswerThisRound,
+    int AnswersSubmittedCount,
+    int AnswersRoomMemberTotal);
 
 public sealed record LobbyPersonDto(Guid PublicId, string Nickname, bool IsHost, bool IsConnected);
 
@@ -159,6 +160,61 @@ public sealed class GameRoomService : IGameRoomService
         return Ok();
     }
 
+    public async Task<Result> HostKickMemberAsync(string roomCodeNormalized, Guid hostPublicId, Guid targetPublicId,
+        CancellationToken ct = default)
+    {
+        var code = RoomCodeNormalizer.Normalize(roomCodeNormalized);
+        var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Code == code, ct);
+        if (room is null)
+            return Fail("Oda bulunamadı.");
+
+        var hostActor = await _db.RoomMembers.FirstOrDefaultAsync(
+            m => m.RoomId == room.Id && m.PublicId == hostPublicId, ct);
+        if (hostActor is null || room.HostMemberId != hostActor.Id)
+            return Fail("Sadece oda kurucusu oyuncu atabilir.");
+
+        if (hostPublicId == targetPublicId)
+            return Fail("Kendini atamazsin.");
+
+        var target = await _db.RoomMembers.FirstOrDefaultAsync(m => m.RoomId == room.Id && m.PublicId == targetPublicId, ct);
+        if (target is null)
+            return Fail("Bu oyuncu masada bulunamadi.");
+
+        if (target.Id == room.HostMemberId)
+            return Fail("Kurucu atilamaz.");
+
+        var kickedConn = target.SignalRConnectionId;
+
+        var answers = await _db.RoundAnswers.Where(a => a.RoomMemberId == target.Id).ToListAsync(ct);
+        _db.RoundAnswers.RemoveRange(answers);
+        _db.RoomMembers.Remove(target);
+        await _db.SaveChangesAsync(ct);
+
+        if (!string.IsNullOrWhiteSpace(kickedConn))
+        {
+            try
+            {
+                await _hub.Clients.Client(kickedConn).SendAsync(
+                    "kickedFromRoom",
+                    new { roomCode = room.Code, message = "Oda kurucusu seni odadan çıkardı." },
+                    ct);
+                await _hub.Groups.RemoveFromGroupAsync(kickedConn, GroupName(code), ct);
+            }
+            catch
+            {
+                // bağlantı kapanmış olabilir
+            }
+        }
+
+        room = await _db.Rooms.FirstAsync(r => r.Id == room.Id, ct);
+        var revealed = await TryCompletingRoundAfterAllAnswersAsync(room, ct);
+        await PublishLobby(code, ct);
+        if (!revealed)
+            await PublishState(code, ct);
+
+        return Ok();
+    }
+
     public async Task<Result> HostSetPackageAsync(string roomCodeNormalized, Guid memberPublicId, int packageId,
         CancellationToken ct = default)
     {
@@ -182,27 +238,6 @@ public sealed class GameRoomService : IGameRoomService
         await _db.SaveChangesAsync(ct);
 
         await PublishLobby(code, ct);
-        await PublishState(code, ct);
-        return Ok();
-    }
-
-    public async Task<Result> HostSetTimerAsync(string roomCodeNormalized, Guid memberPublicId, int seconds,
-        CancellationToken ct = default)
-    {
-        var code = RoomCodeNormalizer.Normalize(roomCodeNormalized);
-        var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Code == code, ct);
-        if (room is null)
-            return Fail("Oda bulunamadı.");
-
-        var member = await _db.RoomMembers.FirstOrDefaultAsync(m => m.RoomId == room.Id && m.PublicId == memberPublicId, ct);
-        if (member is null || room.HostMemberId != member.Id)
-            return Fail("Sadece kurucu süre ayarlayabilir.");
-
-        if (seconds != 0 && seconds is not (30 or 45 or 60))
-            return Fail("Süre 0, 30, 45 veya 60 olmalı.");
-
-        room.RoundTimerSeconds = seconds;
-        await _db.SaveChangesAsync(ct);
         await PublishState(code, ct);
         return Ok();
     }
@@ -247,26 +282,22 @@ public sealed class GameRoomService : IGameRoomService
         if (round is null)
             return Fail("Tur bulunamadı.");
 
-        if (round.EndsAtUtc.HasValue && round.EndsAtUtc.Value <= DateTime.UtcNow)
-            return Fail("Süre doldu.");
-
         var dbMember = await _db.RoomMembers.FirstOrDefaultAsync(m => m.RoomId == room.Id && m.PublicId == memberPublicId, ct);
         if (dbMember is null)
             return Fail("Oyuncu bulunamadı.");
 
         var existing = await _db.RoundAnswers.FirstOrDefaultAsync(a => a.RoundId == round.Id && a.RoomMemberId == dbMember.Id, ct);
-        if (existing is null)
-        {
-            _db.RoundAnswers.Add(new RoundAnswer { RoundId = round.Id, RoomMemberId = dbMember.Id, Text = text });
-        }
-        else
-        {
-            existing.Text = text;
-        }
+        if (existing is not null)
+            return Fail("Bu soruya zaten cevap gönderdin.");
+
+        _db.RoundAnswers.Add(new RoundAnswer { RoundId = round.Id, RoomMemberId = dbMember.Id, Text = text });
 
         await _db.SaveChangesAsync(ct);
 
-        await PublishState(code, ct);
+        var revealed = await TryCompletingRoundAfterAllAnswersAsync(room, ct);
+        if (!revealed)
+            await PublishState(code, ct);
+
         return Ok();
     }
 
@@ -316,9 +347,6 @@ public sealed class GameRoomService : IGameRoomService
         var room = await _db.Rooms.AsNoTracking().FirstOrDefaultAsync(r => r.Code == code, ct);
         if (room is null)
             return Fail("Oda bulunamadı.");
-
-        if (room.Phase == RoomPhase.Lobby)
-            return Fail("Sohbet sadece oyun sırasında.");
 
         var nickname = await _db.RoomMembers.AsNoTracking()
             .Where(m => m.RoomId == room.Id && m.PublicId == memberPublicId)
@@ -382,15 +410,12 @@ public sealed class GameRoomService : IGameRoomService
         var qid = candidates[Random.Shared.Next(candidates.Count)];
         _db.RoomPlayedQuestions.Add(new RoomPlayedQuestion { RoomId = room.Id, QuestionId = qid });
 
-        var timer = Math.Clamp(room.RoundTimerSeconds, 0, 120);
-        var ends = timer == 0 ? (DateTime?)null : DateTime.UtcNow.AddSeconds(timer);
-
         var round = new Round
         {
             RoomId = room.Id,
             QuestionId = qid,
             StartedAtUtc = DateTime.UtcNow,
-            EndsAtUtc = ends,
+            EndsAtUtc = null,
         };
         _db.Rounds.Add(round);
         await _db.SaveChangesAsync(ct);
@@ -400,6 +425,21 @@ public sealed class GameRoomService : IGameRoomService
 
         await PublishState(room.Code, ct);
         await PublishLobby(room.Code, ct);
+    }
+
+    private async Task<bool> TryCompletingRoundAfterAllAnswersAsync(Room room, CancellationToken ct)
+    {
+        if (room.Phase != RoomPhase.CollectingAnswers || room.CurrentRoundId is null)
+            return false;
+
+        var roundId = room.CurrentRoundId.Value;
+        var answerCount = await _db.RoundAnswers.CountAsync(a => a.RoundId == roundId, ct);
+        var memberCount = await _db.RoomMembers.CountAsync(m => m.RoomId == room.Id, ct);
+        if (memberCount == 0 || answerCount < memberCount)
+            return false;
+
+        await RevealCurrentRoundAsync(room, ct);
+        return true;
     }
 
     private async Task RevealCurrentRoundAsync(Room room, CancellationToken ct)
@@ -447,8 +487,9 @@ public sealed class GameRoomService : IGameRoomService
         IList<string>? cards = null;
         string? question = null;
         DateTime? ends = null;
-        string? highlightNickname = null;
-        var highlightMentionCount = 0;
+        var alreadySubmittedThisRound = false;
+        var answersSubmittedCount = 0;
+        var answersRoomMemberTotal = 0;
 
         if (room.CurrentRoundId.HasValue)
         {
@@ -458,18 +499,19 @@ public sealed class GameRoomService : IGameRoomService
             question = qtxt;
             ends = rr.EndsAtUtc;
 
+            if (room.Phase == RoomPhase.CollectingAnswers)
+            {
+                alreadySubmittedThisRound = await _db.RoundAnswers.AsNoTracking()
+                    .AnyAsync(a => a.RoundId == rr.Id && a.RoomMemberId == viewer.Id, ct);
+                answersSubmittedCount = await _db.RoundAnswers.AsNoTracking()
+                    .CountAsync(a => a.RoundId == rr.Id, ct);
+                answersRoomMemberTotal =
+                    await _db.RoomMembers.AsNoTracking().CountAsync(m => m.RoomId == room.Id, ct);
+            }
+
             if (room.Phase == RoomPhase.Revealed && rr.ShuffledAnswersJson is { } raw)
             {
                 cards = JsonSerializer.Deserialize<List<string>>(raw) ?? [];
-                var roundAnswerBodies = await _db.RoundAnswers.AsNoTracking()
-                    .Where(a => a.RoundId == rr.Id)
-                    .Select(a => a.Text)
-                    .ToListAsync(ct);
-
-                var nicksForRoom = peopleQuery.Select(p => p.Nickname).ToList();
-                var highlight = ComputeNameHighlight(roundAnswerBodies, nicksForRoom);
-                highlightNickname = highlight.Nickname;
-                highlightMentionCount = highlight.Count;
             }
         }
 
@@ -489,63 +531,9 @@ public sealed class GameRoomService : IGameRoomService
             peopleQuery,
             isHost,
             viewerRow.Nickname,
-            highlightNickname,
-            highlightMentionCount);
-    }
-
-    /// <summary>
-    /// Oyuncu takma adlarinin tum anonim cevap metinleri icinde (buyuk/kucuk harf duyarsiz) tekrarsiz olarak kac kez gectigini sayar.
-    /// </summary>
-    private static (string? Nickname, int Count) ComputeNameHighlight(IReadOnlyList<string> answerTexts,
-        IReadOnlyList<string> roomNicknames)
-    {
-        var haystack = string.Join('\u0001', answerTexts);
-        if (string.IsNullOrEmpty(haystack))
-            return (null, 0);
-
-        string? bestNick = null;
-        var best = 0;
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var raw in roomNicknames)
-        {
-            var nick = raw.Trim();
-            if (nick.Length < 2 || !seen.Add(nick))
-                continue;
-
-            var c = CountSubstringInsensitiveNonOverlapping(haystack, nick);
-            if (c > best)
-            {
-                best = c;
-                bestNick = nick;
-            }
-            else if (c == best && c > 0 && bestNick is not null &&
-                     string.Compare(nick, bestNick, StringComparison.OrdinalIgnoreCase) < 0)
-            {
-                bestNick = nick;
-            }
-        }
-
-        return best == 0 ? (null, 0) : (bestNick, best);
-    }
-
-    private static int CountSubstringInsensitiveNonOverlapping(string haystack, string needle)
-    {
-        if (string.IsNullOrEmpty(haystack) || string.IsNullOrEmpty(needle))
-            return 0;
-
-        var count = 0;
-        var start = 0;
-        while (start <= haystack.Length - needle.Length)
-        {
-            var ix = haystack.IndexOf(needle, start, StringComparison.OrdinalIgnoreCase);
-            if (ix < 0)
-                break;
-            count++;
-            start = ix + needle.Length;
-        }
-
-        return count;
+            alreadySubmittedThisRound,
+            answersSubmittedCount,
+            answersRoomMemberTotal);
     }
 
     private async Task PublishLobby(string normalizedCode, CancellationToken ct)

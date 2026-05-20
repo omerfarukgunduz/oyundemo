@@ -42,7 +42,7 @@ public sealed class RoomController : Controller
             Phase = RoomPhase.Lobby,
             CreatedAtUtc = DateTime.UtcNow,
             SelectedPackageId = firstPkg?.Id,
-            RoundTimerSeconds = 30,
+            RoundTimerSeconds = 0,
             HostMemberId = null,
         };
 
@@ -150,7 +150,6 @@ public sealed class RoomController : Controller
 
         return View(new LobbyPageVm(code, memberId.Value, isHost,
             invite, pkgs,
-            room.RoundTimerSeconds,
             room.SelectedPackageId,
             memberRow.Nickname));
     }

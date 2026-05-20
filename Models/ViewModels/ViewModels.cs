@@ -23,7 +23,6 @@ public sealed record LobbyPageVm(
     bool IsHost,
     string InviteUrl,
     IReadOnlyList<PackageVm> Packages,
-    int TimerSecondsConfigured,
     int? SelectedPackageId,
     string Nickname);
 

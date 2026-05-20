@@ -39,8 +39,8 @@ public sealed class GameHub : Hub
     public Task<HubAck> HostSelectPackage(string roomCode, Guid memberGuid, int packageId) =>
         WithGame(g => g.HostSetPackageAsync(roomCode, memberGuid, packageId, Context.ConnectionAborted));
 
-    public Task<HubAck> HostSetTimer(string roomCode, Guid memberGuid, int seconds) =>
-        WithGame(g => g.HostSetTimerAsync(roomCode, memberGuid, seconds, Context.ConnectionAborted));
+    public Task<HubAck> HostKickMember(string roomCode, Guid memberGuid, Guid targetMemberGuid) =>
+        WithGame(g => g.HostKickMemberAsync(roomCode, memberGuid, targetMemberGuid, Context.ConnectionAborted));
 
     public Task<HubAck> HostStart(string roomCode, Guid memberGuid) =>
         WithGame(g => g.HostStartGameAsync(roomCode, memberGuid, Context.ConnectionAborted));
