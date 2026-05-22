@@ -1,0 +1,49 @@
+@model List<IfsaKlasik.Web.Models.Entities.PlayFeedback>
+@{
+    ViewData["Title"] = "Geri bildirimler";
+}
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card card-party rounded-4 p-4 text-white mb-4">
+            <p class="text-white-75 text-uppercase small fw-bold mb-2" style="letter-spacing:.06em;">Oyuncular</p>
+            <h1 class="h3 fw-bold mb-4">Oyun sonu geri bildirimleri</h1>
+            <p class="text-white-50 small mb-4">Son 500 kayıt (en yeniden eskiye).</p>
+
+            @if (Model.Count == 0)
+            {
+                <p class="text-white-50 mb-0">Henüz kayıt yok.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped table-bordered border-secondary align-middle mb-0 small">
+                        <thead>
+                            <tr class="text-white-50 text-uppercase" style="font-size:.72rem;">
+                                <th>Tarih (UTC)</th>
+                                <th>Oda</th>
+                                <th>Takma ad</th>
+                                <th>Geri bildirim</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in Model)
+                            {
+                                <tr>
+                                    <td class="text-nowrap">@f.SubmittedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td><code class="text-warning">@f.RoomCode</code></td>
+                                    <td>@f.Nickname</td>
+                                    <td class="text-break" style="max-width:36rem;">@(string.IsNullOrWhiteSpace(f.DeveloperMessage) ? "—" : f.DeveloperMessage)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="mt-4">
+                <a class="btn btn-outline-light rounded-pill px-4" asp-area="Admin" asp-controller="Home" asp-action="Index">← Admin ana</a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -36,6 +36,11 @@ builder.Services.ConfigureApplicationCookie(opts =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+});
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR(options =>
 {
@@ -45,6 +50,8 @@ builder.Services.AddSignalR(options =>
     opts.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     opts.PayloadSerializerOptions.ReferenceHandler =
         System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    opts.PayloadSerializerOptions.Converters.Add(new SignalRUtcIsoDateTimeConverter());
+    opts.PayloadSerializerOptions.Converters.Add(new SignalRUtcIsoNullableDateTimeConverter());
 });
 
 builder.Services.AddScoped<IRoomCookieService, RoomCookieService>();

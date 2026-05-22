@@ -18,19 +18,30 @@ public sealed class QuestionsController : Controller
         _db = db;
     }
 
-    public async Task<IActionResult> Index(int packageId, CancellationToken ct)
+    /// <summary>Soru listesi. <paramref name="packageId"/> query ile paket seçilir; yoksa ilk paket.</summary>
+    public async Task<IActionResult> Index(int? packageId, CancellationToken ct)
     {
-        var pkg = await _db.QuestionPackages.AsNoTracking().FirstOrDefaultAsync(p => p.Id == packageId, ct);
-        if (pkg is null)
-            return NotFound();
+        var packageOptions = await _db.QuestionPackages.AsNoTracking()
+            .OrderBy(p => p.Name)
+            .Select(p => new PackageOptionVm(p.Id, p.Name, p.IsActive))
+            .ToListAsync(ct);
+
+        if (packageOptions.Count == 0)
+            return View(new QuestionsIndexVm(null, null, [], packageOptions));
+
+        var resolvedId = packageId is { } pid && packageOptions.Any(p => p.Id == pid)
+            ? pid
+            : packageOptions[0].Id;
+
+        var activePkg = packageOptions.First(p => p.Id == resolvedId);
 
         var rows = await _db.Questions.AsNoTracking()
-            .Where(q => q.PackageId == packageId)
+            .Where(q => q.PackageId == resolvedId)
             .OrderBy(q => q.Id)
             .Select(q => new QuestionListItemVm(q.Id, q.Text))
             .ToListAsync(ct);
 
-        return View(new QuestionsIndexVm(pkg.Name, packageId, rows));
+        return View(new QuestionsIndexVm(activePkg.Name, resolvedId, rows, packageOptions));
     }
 
     [HttpGet]
@@ -113,18 +124,27 @@ public sealed class QuestionsController : Controller
 
 public sealed record QuestionListItemVm(int Id, string Text);
 
+public sealed record PackageOptionVm(int Id, string Name, bool IsActive);
+
 public sealed class QuestionsIndexVm
 {
-    public QuestionsIndexVm(string packageName, int packageId, IReadOnlyList<QuestionListItemVm> questions)
+    public QuestionsIndexVm(string? packageName, int? packageId, IReadOnlyList<QuestionListItemVm> questions,
+        IReadOnlyList<PackageOptionVm> availablePackages)
     {
         PackageName = packageName;
         PackageId = packageId;
         Questions = questions;
+        AvailablePackages = availablePackages;
     }
 
-    public string PackageName { get; }
-    public int PackageId { get; }
+    /// <summary>Hiç paket yoksa false.</summary>
+    public bool HasPackages => AvailablePackages.Count > 0;
+
+    public string? PackageName { get; }
+    public int? PackageId { get; }
     public IReadOnlyList<QuestionListItemVm> Questions { get; }
+
+    public IReadOnlyList<PackageOptionVm> AvailablePackages { get; }
 }
 
 public sealed class QuestionVm

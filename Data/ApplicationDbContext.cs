@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RoomPlayedQuestion> RoomPlayedQuestions => Set<RoomPlayedQuestion>();
     public DbSet<Round> Rounds => Set<Round>();
     public DbSet<RoundAnswer> RoundAnswers => Set<RoundAnswer>();
+    public DbSet<PlayFeedback> PlayFeedbacks => Set<PlayFeedback>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -43,6 +44,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             e.Property(x => x.Code).HasMaxLength(16).IsRequired();
             e.HasIndex(x => x.Code).IsUnique();
+
+            e.Property(x => x.GameStartedAtUtc);
 
             e.HasOne(x => x.SelectedPackage).WithMany().HasForeignKey(x => x.SelectedPackageId)
                 .OnDelete(DeleteBehavior.SetNull);
@@ -87,6 +90,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<RoundAnswer>(e =>
         {
             e.Property(x => x.Text).HasMaxLength(512).IsRequired();
+            e.Property(x => x.SubmittedAtUtc);
 
             e.HasOne(x => x.Round).WithMany(x => x.Answers).HasForeignKey(x => x.RoundId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -95,6 +99,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(x => new { x.RoundId, x.RoomMemberId }).IsUnique();
+        });
+
+        builder.Entity<PlayFeedback>(e =>
+        {
+            e.Property(x => x.RoomCode).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Nickname).HasMaxLength(64).IsRequired();
+            e.Property(x => x.DeveloperMessage).HasMaxLength(2000).IsRequired();
+
+            e.HasIndex(x => x.SubmittedAtUtc);
+            e.HasIndex(x => x.RoomCode);
         });
     }
 }

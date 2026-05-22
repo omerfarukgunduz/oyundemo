@@ -4,6 +4,7 @@ using IfsaKlasik.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IfsaKlasik.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260523194500_GameFinishTelemetry")]
+    partial class GameFinishTelemetry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -149,11 +151,11 @@ namespace IfsaKlasik.Web.Data.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CurrentRoundId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("GameStartedAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CurrentRoundId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("HostMemberId")
                         .HasColumnType("int");
@@ -297,44 +299,6 @@ namespace IfsaKlasik.Web.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("RoundAnswers");
-                });
-
-            modelBuilder.Entity("IfsaKlasik.Web.Models.Entities.PlayFeedback", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("DeveloperMessage")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<Guid>("MemberPublicId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Nickname")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("RoomCode")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
-                    b.Property<DateTime>("SubmittedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoomCode");
-
-                    b.HasIndex("SubmittedAtUtc");
-
-                    b.ToTable("PlayFeedbacks");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

@@ -1,6 +1,6 @@
 ﻿@model LobbyPageVm
 @{
-    ViewData["Title"] = $"Lobby - {Model.RoomCode}";
+    ViewData["Title"] = $"Lobi • {Model.RoomCode}";
     var bootPayload = JsonSerializer.Serialize(new Dictionary<string, object?>
     {
         ["hubPath"] = Url.Content("~/hubs/game") ?? "/hubs/game",
@@ -19,12 +19,12 @@
         <div class="card card-party rounded-4 p-4 text-white mb-4">
             <div class="row g-4">
                 <div class="col-lg-7">
-                    <p class="text-white-50 text-uppercase small mb-2" style="letter-spacing:.08em;">Room code</p>
+                    <p class="text-white-50 text-uppercase small mb-2" style="letter-spacing:.08em;">Oda kodu</p>
                     <p class="display-5 fw-bold text-white mb-4">@Model.RoomCode</p>
-                    <label class="form-label fw-semibold">Invite link</label>
+                    <label class="form-label fw-semibold">Davet bağlantısı</label>
                     <div class="input-group flex-column flex-lg-row gap-2 mb-4">
                         <input id="inviteLink" readonly class="form-control form-control-lg bg-dark border-0 text-white rounded-4 px-4" value="@Model.InviteUrl" />
-                        <button type="button" id="inviteCopyBtn" class="btn btn-light rounded-pill px-5 fw-semibold ms-lg-2 shadow-sm text-dark align-self-lg-center">Copy</button>
+                        <button type="button" id="inviteCopyBtn" class="btn btn-light rounded-pill px-5 fw-semibold ms-lg-2 shadow-sm text-dark align-self-lg-center">Kopyala</button>
                     </div>
                     <img id="inviteQr" width="240" height="240" alt="" class="bg-white rounded-4 p-3 shadow-sm mx-auto mx-lg-0 d-block" decoding="async" />
                 </div>
@@ -35,8 +35,8 @@
                             <div class="d-flex align-items-center gap-2 mb-4">
                                 <span class="pulse-dot"></span>
                                 <div>
-                                    <p class="h5 fw-bold text-white mb-0">Host control</p>
-                                    <small class="text-white-50">Paket sec, herkesi firlattir.</small>
+                                    <p class="h5 fw-bold text-white mb-0">Kurucu paneli</p>
+                                    <small class="text-white-50">Soru paketini seçin ve masayı başlatın.</small>
                                 </div>
                             </div>
                             <label class="form-label fw-semibold">Soru paketi</label>
@@ -47,13 +47,13 @@
                                 }
                             </select>
 
-                            <button id="startGameBtn" type="button" class="btn btn-accent w-100 rounded-pill py-4 fw-bold">Oyuna baslat</button>
+                            <button id="startGameBtn" type="button" class="btn btn-accent w-100 rounded-pill py-4 fw-bold">Oyuna başlat</button>
                         </div>
                     }
                     else
                     {
                         <div class="rounded-4 p-4 glass-chip h-100">
-                            <p class="fw-bold text-white mb-3">Kurucu start tusuna basinca herkes oyun sahnesine tasinir.</p>
+                            <p class="fw-bold text-white mb-3">Kurucu <strong>Başlat</strong> düğmesine bastığında herkes oyun ekranına geçer.</p>
                             <img id="joinQrPassive" width="220" height="220" alt="" class="bg-white rounded-4 p-2 shadow-sm d-block mx-auto" decoding="async" />
                         </div>
                     }
@@ -70,25 +70,25 @@
             <div id="lobbyPresence" class="d-grid gap-2 mb-4"></div>
             <label class="fw-semibold form-label">Takma ad</label>
             <div class="input-group mb-3">
-                <input id="lobbyNickname" maxlength="32" class="form-control bg-dark border-0 text-white rounded-start-pill px-4 py-3" value="@Model.Nickname" placeholder="Nickname" />
+                <input id="lobbyNickname" maxlength="32" class="form-control bg-dark border-0 text-white rounded-start-pill px-4 py-3" value="@Model.Nickname" placeholder="Takma ad" />
                 <button id="nicknameSaveBtn" type="button" class="btn btn-light rounded-end-pill px-5 fw-semibold shadow-sm text-dark">Kaydet</button>
             </div>
-            <small class="text-white-50 d-block mb-2">Davet adresi yeniden yazilmak istenirse arkadasina whatsapp atan senden olur.</small>
-            <small class="text-white-50">Davet adresi kodu yanlis yazmissa bile cezalandirilmiyorsun, sakin ol.</small>
+            <small class="text-white-50 d-block mb-2">Davet bağlantısını yeniden iletmek istersen ilk mesajı genelde atan sensin (WhatsApp veya uygun bir kanaldan).</small>
+            <small class="text-white-50">Kodu yanlış yazsan bile cezalandırılmıyorsun, sakin ol.</small>
         </div>
 
         <div id="roomChatPanel" class="card card-party rounded-4 p-4 text-white flex-grow-1 d-flex flex-column mt-0 mb-0">
-            <h3 class="h5 gradient-text fw-bold mb-2">Lobby sohbeti</h3>
-            <p class="text-white-50 small mb-3">Oyuncular takma adlariyla yaziyor — oyuna girmeden de buradasin.</p>
+            <h3 class="h5 gradient-text fw-bold mb-2">Lobi sohbeti</h3>
+            <p class="text-white-50 small mb-3">Oyuncular takma adlarıyla yazıyor; oyuna geçmesen bile buradasın.</p>
 
             <div id="chatMessages" class="party-chat-log rounded-4 p-3 mb-3 flex-grow-1 text-white small" style="min-height: 220px;" aria-live="polite" role="log"></div>
 
             <label class="form-label fw-semibold small mb-2" for="chatInput">Mesaj</label>
             <div class="input-group mb-2">
                 <input id="chatInput" type="text" maxlength="400" autocomplete="off" placeholder="Masaya yaz..." class="form-control rounded-start-pill bg-dark border-0 text-white px-4 py-3" />
-                <button id="chatSendBtn" type="button" class="btn btn-accent rounded-end-pill px-4 fw-semibold">Gonder</button>
+                <button id="chatSendBtn" type="button" class="btn btn-accent rounded-end-pill px-4 fw-semibold">Gönder</button>
             </div>
-            <small class="text-white-50">Enter ile gonder • max 400 karakter</small>
+            <small class="text-white-50">Enter ile gönder • en fazla 400 karakter</small>
         </div>
     </div>
 </div>

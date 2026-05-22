@@ -9,6 +9,8 @@ namespace IfsaKlasik.Web.Controllers;
 
 public sealed class RoomController : Controller
 {
+    private static readonly HashSet<int> AllowedRoundTimerSeconds = new(new[] { 0, 30, 60, 90, 120 });
+
     private readonly ApplicationDbContext _db;
     private readonly IRoomCookieService _cookies;
 
@@ -19,13 +21,22 @@ public sealed class RoomController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create() => View();
+    public IActionResult Create() => View(new CreateRoomVm());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([FromForm] string nickname, CancellationToken ct)
+    public async Task<IActionResult> Create(CreateRoomVm model, CancellationToken ct)
     {
-        nickname = NormalizeNick(nickname);
+        if (!AllowedRoundTimerSeconds.Contains(model.RoundTimerSeconds))
+        {
+            ModelState.AddModelError(nameof(model.RoundTimerSeconds),
+                "Geçersiz süre seçimi.");
+        }
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var nickname = NormalizeNick(model.Nickname);
 
         await using var trx = await _db.Database.BeginTransactionAsync(ct);
 
@@ -42,7 +53,7 @@ public sealed class RoomController : Controller
             Phase = RoomPhase.Lobby,
             CreatedAtUtc = DateTime.UtcNow,
             SelectedPackageId = firstPkg?.Id,
-            RoundTimerSeconds = 0,
+            RoundTimerSeconds = model.RoundTimerSeconds,
             HostMemberId = null,
         };
 

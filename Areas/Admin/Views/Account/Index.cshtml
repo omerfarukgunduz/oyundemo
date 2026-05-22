@@ -1,0 +1,84 @@
+@model AdminManageAccountPageVm
+@{
+    ViewData["Title"] = "Hesap ayarları";
+    var ok = ViewBag.StatusOk as string;
+    var info = ViewBag.StatusInfo as string;
+}
+
+<div class="row g-4">
+    <div class="col-12 mb-3">
+        <a class="btn btn-outline-light rounded-pill px-4" asp-area="Admin" asp-controller="Home" asp-action="Index">← Admin ana</a>
+    </div>
+    @if (!string.IsNullOrEmpty(ok))
+    {
+        <div class="col-12">
+            <div class="alert alert-success rounded-4 shadow-sm mb-0" role="status">@ok</div>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(info))
+    {
+        <div class="col-12">
+            <div class="alert alert-info rounded-4 shadow-sm mb-0" role="status">@info</div>
+        </div>
+    }
+    <div class="col-lg-6">
+        <div class="card card-party rounded-4 p-4 p-lg-5 text-white h-100">
+            <h2 class="h5 fw-bold gradient-text mb-2">Mevcut e-posta</h2>
+            <p class="text-white-75 small mb-4">Şu anda giriş için kullanılan adres.</p>
+            <p class="fw-semibold fs-6 mb-0 text-break">@Model.CurrentEmail</p>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card card-party rounded-4 p-4 p-lg-5 text-white h-100">
+            <h2 class="h5 fw-bold gradient-text mb-2">E-posta güncelle</h2>
+            <p class="text-white-75 small mb-4">Doğrulama için mevcut şifrenizi girmelisiniz. Giriş kullanıcı adı yeni adresle aynı olur.</p>
+            <form asp-area="Admin" asp-controller="Account" asp-action="ChangeEmail" method="post">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label class="fw-semibold form-label" asp-for="ChangeEmailForm.NewEmail"></label>
+                    <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="ChangeEmailForm.NewEmail" maxlength="256" autocomplete="email" />
+                    <span asp-validation-for="ChangeEmailForm.NewEmail" class="text-warning small d-block"></span>
+                </div>
+                <div class="mb-4">
+                    <label class="fw-semibold form-label" asp-for="ChangeEmailForm.CurrentPassword"></label>
+                    <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="ChangeEmailForm.CurrentPassword" autocomplete="current-password" />
+                    <span asp-validation-for="ChangeEmailForm.CurrentPassword" class="text-warning small d-block"></span>
+                </div>
+                <button class="btn btn-accent w-100 rounded-pill py-3 fw-semibold" type="submit">E-postayı kaydet</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card card-party rounded-4 p-4 p-lg-5 text-white">
+            <h2 class="h5 fw-bold gradient-text mb-2">Şifre güncelle</h2>
+            <p class="text-white-75 small mb-4">Min. 8 karakter; en az bir rakam ve bir büyük harf gereklidir.</p>
+            <div class="row justify-content-lg-center">
+                <div class="col-lg-8">
+                    <form asp-area="Admin" asp-controller="Account" asp-action="ChangePassword" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="fw-semibold form-label" asp-for="ChangePasswordForm.CurrentPassword"></label>
+                            <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="ChangePasswordForm.CurrentPassword" autocomplete="current-password" />
+                            <span asp-validation-for="ChangePasswordForm.CurrentPassword" class="text-warning small d-block"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-semibold form-label" asp-for="ChangePasswordForm.NewPassword"></label>
+                            <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="ChangePasswordForm.NewPassword" autocomplete="new-password" />
+                            <span asp-validation-for="ChangePasswordForm.NewPassword" class="text-warning small d-block"></span>
+                        </div>
+                        <div class="mb-4">
+                            <label class="fw-semibold form-label" asp-for="ChangePasswordForm.ConfirmNewPassword"></label>
+                            <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="ChangePasswordForm.ConfirmNewPassword" autocomplete="new-password" />
+                            <span asp-validation-for="ChangePasswordForm.ConfirmNewPassword" class="text-warning small d-block"></span>
+                        </div>
+                        <button class="btn btn-light w-100 rounded-pill py-3 fw-semibold text-dark" type="submit">Şifreyi güncelle</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

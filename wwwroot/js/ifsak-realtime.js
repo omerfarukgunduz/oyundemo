@@ -10,6 +10,21 @@
     /** Play ekranında cevap alanı ile senkron: yeni turda temizlemek için. */
     let lastAnswerSyncedRoundId;
 
+    /** Son yayınlanan oyun state’i (süre + titreşim tikinde). */
+    let latestPlayState = null;
+
+    /** Kalan süre göstergesi interval (500 ms). */
+    let roundTimerInterval = null;
+
+    /** Titreşim — tur kimliği değişince sıfırlanır */
+    let vibrateRoundKey = null;
+    /** Geri sayımda son çalınan saniye (aynı saniyede tek titreşim) */
+    let vibrateLastCountdownSecond = null;
+    let vibrateTurnNotifiedForRound = false;
+
+    /** Oyun bitti uyarı kutusu ayın turunda bir kez açılsın */
+    let playEndFeedbackModalOpened = false;
+
     const connection = new signalR.HubConnectionBuilder()
         .withUrl(cfg.hubPath)
         .withAutomaticReconnect([0, 1500, 4000])
@@ -19,7 +34,7 @@
     connection.on('stateFull', handleStateEnvelope);
     connection.on('chatMessage', appendChatMessage);
     connection.on('kickedFromRoom', async () => {
-        toast('Oda kurucusu seni odadan cikardi.');
+        toast('Oda kurucusu seni odadan çıkardı.');
         try {
             await connection.stop();
         } catch (_) {
@@ -29,24 +44,38 @@
         window.location.assign(`/Room/Join?code=${encodeURIComponent(cfg.roomCode ?? '')}`);
     });
 
+    connection.onreconnecting(() => {
+        toast('Bağlantı kopuyor, yeniden bağlanılıyor…');
+    });
+
+    connection.onreconnected(async () => {
+        try {
+            await connection.invoke('JoinRoom', cfg.roomCode, hyphenate(cfg.identity));
+            toast('Masaya yeniden bağlandınız.');
+        } catch (err) {
+            console.warn('JoinRoom after reconnect failed', err);
+            toast('Bağlantı yenilendi; durum güncelleniyor…');
+        }
+    });
+
     async function invokeHub(method, ...args) {
         try {
             const okPacket = await connection.invoke(method, ...args);
             if (!okPacket?.ok) {
-                toast(okPacket?.error || 'Bu adim simdilik olmadı.');
+                toast(okPacket?.error || 'Bu adım şimdilik olmadı.');
             }
 
             return okPacket;
         } catch (error) {
             console.error(method, error);
-            toast(`Baglantida kirik var: ${error?.message ?? 'bilinmeyen 🫠'}`);
+            toast(`Bağlantıda sorun var: ${error?.message ?? 'bilinmeyen 🫠'}`);
             return null;
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.signalR) {
-            toast('SignalR kutuphanesi eksik 📡');
+            toast('SignalR kütüphanesi eksik 📡');
             return;
         }
 
@@ -58,6 +87,7 @@
             startRealtime();
         } else if (playScene) {
             bootstrapPlayInteractions();
+            wirePlayEndFeedbackForm();
             startRealtime();
         }
     });
@@ -72,9 +102,38 @@
     function bootstrapPlayInteractions() {
         bindClick('sendAnswerBtn', sendAnswerClicked);
         bindClick('hostRevealEarlyBtn', () => invokeHub('HostRevealNow', cfg.roomCode, hyphenate(cfg.identity)));
+        bindClick('hostSkipQuestionBtn', async () => {
+            if (
+                !window.confirm(
+                    'Bu sorunun cevapları açılmadan sıradaki soruya geçilecek. Emin misin?',
+                )
+            ) {
+                return;
+            }
+
+            await invokeHub('HostSkipQuestion', cfg.roomCode, hyphenate(cfg.identity));
+        });
+
         bindClick('hostNextRoundBtn', () => invokeHub('HostNextQuestion', cfg.roomCode, hyphenate(cfg.identity)));
+
+        bindClick('hostFinishGameCollectBtn', confirmHostFinishGame);
+        bindClick('hostFinishGameRevealBtn', confirmHostFinishGame);
+
         wireRoomChat();
+        wireVibrateToggle();
         setNickBadge(cfg.nickname);
+    }
+
+    async function confirmHostFinishGame() {
+        if (
+            !window.confirm(
+                'Oyun bitecek ve tüm oyuncuların ekranında özet gösterilecek. Onaylıyor musun? (Tamam=Evet)',
+            )
+        ) {
+            return;
+        }
+
+        await invokeHub('HostFinishGame', cfg.roomCode, hyphenate(cfg.identity));
     }
 
     async function sendChatClicked() {
@@ -133,6 +192,104 @@
         }
 
         holder.scrollTop = holder.scrollHeight;
+    }
+
+    function wireVibrateToggle() {
+        const chk = document.getElementById('ifsVibrateToggle');
+        if (!chk) {
+            return;
+        }
+
+        try {
+            chk.checked = localStorage.getItem('ifsVibrateAlerts') !== '0';
+        } catch (_) {
+            chk.checked = true;
+        }
+
+        chk.addEventListener('change', () => {
+            try {
+                localStorage.setItem('ifsVibrateAlerts', chk.checked ? '1' : '0');
+            } catch (_) {
+                /* ignore */
+            }
+        });
+    }
+
+    function wirePlayEndFeedbackForm() {
+        const form = document.getElementById('playEndFeedbackForm');
+        if (!form || !cfg.playFeedbackUrl) {
+            return;
+        }
+
+        form.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const btn = document.getElementById('playEndFeedbackSendBtn');
+            if (btn) {
+                btn.disabled = true;
+            }
+
+            try {
+                const params = new URLSearchParams(new FormData(form));
+                const res = await fetch(cfg.playFeedbackUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        Accept: 'application/json',
+                    },
+                    body: params.toString(),
+                });
+
+                let data = {};
+                try {
+                    data = await res.json();
+                } catch (_) {
+                    /* ignore */
+                }
+
+                if (res.ok && data.ok) {
+                    toast('Teşekkürler — geri bildirimin iletildi 🙏');
+                    const modalEl = document.getElementById('feedbackAfterGameModal');
+                    if (modalEl && window.bootstrap?.Modal) {
+                        const inst = window.bootstrap.Modal.getInstance(modalEl);
+                        if (inst) {
+                            inst.hide();
+                        }
+                    }
+                } else {
+                    toast(data.error ?? 'Gönderilemedi — sonra tekrar dene.');
+                }
+            } catch (_) {
+                toast('Bağlantı hatası.');
+            }
+
+            if (btn) {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    function maybeOpenPlayEndFeedbackModal() {
+        if (!playScene || playEndFeedbackModalOpened || !cfg.playFeedbackUrl) {
+            return;
+        }
+
+        const modalEl = document.getElementById('feedbackAfterGameModal');
+        if (!modalEl || typeof window.bootstrap === 'undefined') {
+            return;
+        }
+
+        playEndFeedbackModalOpened = true;
+        const form = document.getElementById('playEndFeedbackForm');
+        if (form) {
+            form.reset();
+            const ta = document.getElementById('feedbackDeveloperMsg');
+            if (ta) {
+                ta.value = '';
+            }
+        }
+
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
     function wireLobbyInputs() {
@@ -199,7 +356,33 @@
         }
     }
 
+    function normalizeGameStatePayload(state) {
+        if (!state || typeof state !== 'object') {
+            return state;
+        }
+        if (state.phase == null && state.Phase != null) {
+            state.phase = state.Phase;
+        }
+        if (state.roomCode == null && state.RoomCode != null) {
+            state.roomCode = state.RoomCode;
+        }
+        if (state.roundEndsUtc == null && state.RoundEndsUtc != null) {
+            state.roundEndsUtc = state.RoundEndsUtc;
+        }
+        if ((state.questionText === undefined || state.questionText === null) && state.QuestionText != null) {
+            state.questionText = state.QuestionText;
+        }
+        if (
+            (!Array.isArray(state.shuffledCards) || state.shuffledCards.length === 0) &&
+            Array.isArray(state.ShuffledCards)
+        ) {
+            state.shuffledCards = state.ShuffledCards;
+        }
+        return state;
+    }
+
     function handleStateEnvelope(state) {
+        normalizeGameStatePayload(state);
         if (!state) {
             return;
         }
@@ -226,7 +409,7 @@
         }
     }
 
-    /** Host “At” tuslari (delegasyon, tek kayit). */
+    /** Host atma düğmeleri (delegasyon; tek bağlama). */
     function wireHostKickDelegation() {
         if (!cfg.isHost) {
             return;
@@ -255,7 +438,7 @@
                 return;
             }
 
-            if (!window.confirm('Bu oyuncuyu odadan cikarmak istiyor musun?')) {
+            if (!window.confirm('Bu oyuncuyu odadan çıkarmak istiyor musun?')) {
                 return;
             }
 
@@ -265,11 +448,29 @@
     }
 
     function hydratePlayScreens(state) {
+        if (playScene) {
+            latestPlayState = state;
+        }
+
         setNickBadge(state.yourNickname);
+        if (state.phase !== 'Finished') {
+            playEndFeedbackModalOpened = false;
+        }
+
+        toggleSection('finishedPanel', state.phase === 'Finished');
         toggleSection('collectPanel', state.phase === 'CollectingAnswers');
         toggleSection('revealPanel', state.phase === 'Revealed');
         toggleSection('hostRevealPanel', !!(state.phase === 'CollectingAnswers' && state.youAreHost));
         toggleSection('hostNextPanel', !!(state.phase === 'Revealed' && state.youAreHost));
+
+        if (state.phase === 'CollectingAnswers' || state.phase === 'Revealed') {
+            setQuestion(state.questionText);
+        }
+
+        if (state.phase === 'Finished') {
+            renderFinishedGameSummary(state);
+            maybeOpenPlayEndFeedbackModal();
+        }
 
         if (state.phase === 'CollectingAnswers') {
             const rid = state.currentRoundId ?? null;
@@ -282,17 +483,90 @@
                 lastAnswerSyncedRoundId = rid;
             }
 
-            setQuestion(state.questionText);
             syncAnswerComposerLockedFromState(state);
             updateAnswerProgressIndicator(state);
+            updateAnswerWaitingLine(state);
+            syncVibrateRoundForState(state);
+            maintainRoundTimerForState(state);
+            evaluateVibrationCues(state);
         } else {
             setAnswerComposerLocked(false);
             hideAnswerProgressIndicator();
+            hideRoundTimerUi();
         }
 
         if (state.phase === 'Revealed' && Array.isArray(state.shuffledCards)) {
             animateDeck(state.shuffledCards);
         }
+    }
+
+    function fmtSecondsTr(seconds) {
+        const n = Number(seconds);
+        if (!Number.isFinite(n)) {
+            return '—';
+        }
+
+        return `${new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(n)} sn`;
+    }
+
+    function renderFinishedGameSummary(state) {
+        const s = state.gameFinishedSummary ?? state.GameFinishedSummary;
+        const lineFriends = document.getElementById('finishedLineFriends');
+        const lineRounds = document.getElementById('finishedLineRounds');
+        const fastOl = document.getElementById('finishedFastList');
+        const slowOl = document.getElementById('finishedSlowList');
+        const fn = document.getElementById('finishedRankFootnote');
+        if (!lineFriends || !lineRounds || !fastOl || !slowOl || !fn) {
+            return;
+        }
+
+        if (!s) {
+            lineFriends.textContent = '';
+            lineRounds.textContent = 'Özet yüklenemedi.';
+            fastOl.innerHTML = '';
+            slowOl.innerHTML = '';
+            fn.classList.add('d-none');
+            return;
+        }
+
+        const friends = Number(s.friendCount ?? 0);
+        const minutes = Number(s.durationMinutes ?? 1);
+        const roundsAsked = Number(s.roundsAnsweredCount ?? 0);
+        const totalAns = Number(s.totalAnswersCount ?? 0);
+
+        lineFriends.textContent = `Toplam ${friends} arkadaşla yaklaşık ${minutes} dakika keyifli bir vakit geçirdiniz.`;
+        lineRounds.textContent = `${roundsAsked} soru turunda toplam ${totalAns} cevap yazıldı.`;
+
+        fastOl.innerHTML = '';
+        slowOl.innerHTML = '';
+
+        const fast = Array.isArray(s.fastestThree) ? s.fastestThree : [];
+        const slow = Array.isArray(s.slowestThree) ? s.slowestThree : [];
+
+        const attachRows = (ol, rows) => {
+            rows.forEach((entry) => {
+                const nick = String(entry?.nickname ?? '?');
+                const avg = fmtSecondsTr(entry?.averageAnswerSecondsRounded);
+                const li = document.createElement('li');
+                li.textContent = `${nick} — ort. ${avg}`;
+                ol.appendChild(li);
+            });
+        };
+
+        const hasRanking = fast.length > 0 || slow.length > 0;
+        if (!hasRanking) {
+            fastOl.innerHTML = `<li class="text-white-50">Kimse zaman damgalı cevap bırakmadıysa veya veri eksikse sıralama çıkmaz.</li>`;
+            slowOl.innerHTML = `<li class="text-white-50">—</li>`;
+            fn.classList.add('d-none');
+            return;
+        }
+
+        attachRows(fastOl, fast);
+        attachRows(slowOl, slow);
+
+        fn.textContent =
+            'Hız sıralaması; her tur başladıktan sonra cevap yazdığınız sürenin takma adına göre ortalaması ile hesaplandı.';
+        fn.classList.remove('d-none');
     }
 
     function updatePlayHostKickPanel(state) {
@@ -313,7 +587,7 @@
         mountKickableGuests(list, Array.isArray(state.people) ? state.people : []);
     }
 
-    /** Lobide liste + sayac; oyunda sadece `updatePlayHostKickPanel` kullanir. */
+    /** Lobide liste ve sayaç; oyunda yalnızca `updatePlayHostKickPanel` kullanılır. */
     function mountKickableGuests(container, entries) {
         if (!container) {
             return;
@@ -336,16 +610,16 @@
             'd-flex flex-column flex-md-row gap-2 justify-content-between align-items-md-center glass-chip rounded-pill px-4 py-3 text-white mb-2';
         const nickname = encodeText(guest.nickname ?? 'Oyuncu');
         const vibe = guest.isHost
-            ? '☆ HOST'
+            ? '☆ Kurucu'
             : guest.isConnected
-                ? '🟢 canlı masada'
-                : '💤 ara verdi';
+                ? '🟢 masada bağlı'
+                : '💤 çevrimdışı';
 
         let kickMarkup = `<span class="small">${vibe}</span>`;
         if (cfg.isHost && guest.isHost === false) {
             const midRaw = encodeAttr(guestMemberGuidString(guest));
             kickMarkup +=
-                `<button type="button" class="btn btn-sm btn-outline-danger rounded-pill" data-action="host-kick-member" data-member-id="${midRaw}">Masadan cikar</button>`;
+                `<button type="button" class="btn btn-sm btn-outline-danger rounded-pill" data-action="host-kick-member" data-member-id="${midRaw}">Masadan çıkar</button>`;
         }
 
         row.innerHTML = `<span class="fw-semibold">${nickname}</span><div class="d-flex gap-2 align-items-center">${kickMarkup}</div>`;
@@ -376,6 +650,375 @@
         if (line) {
             line.style.display = 'none';
         }
+
+        hideAnswerWaitingLine();
+    }
+
+    /** Sunucudan gelir: cevapsız oyuncular 1–3 kişiyse takma ad listesi */
+    function normalizeWaitingNicknames(raw) {
+        if (!Array.isArray(raw)) {
+            return [];
+        }
+
+        return raw.map((x) => String(x ?? '').trim()).filter((s) => s.length > 0);
+    }
+
+    function formatWaitingAnswerPhrase(names) {
+        if (!names?.length || names.length > 3) {
+            return '';
+        }
+
+        if (names.length === 1) {
+            return `${names[0]} hâlâ cevap vermedi.`;
+        }
+
+        if (names.length === 2) {
+            return `${names[0]} ve ${names[1]} hâlâ cevap vermedi.`;
+        }
+
+        return `${names[0]}, ${names[1]} ve ${names[2]} hâlâ cevap vermedi.`;
+    }
+
+    function hideAnswerWaitingLine() {
+        const el = document.getElementById('answerWaitingLine');
+        if (el) {
+            el.style.display = 'none';
+            el.textContent = '';
+        }
+    }
+
+    function parseRoundEndsMs(state) {
+        const raw = state.roundEndsUtc ?? state.RoundEndsUtc;
+        if (raw == null) {
+            return null;
+        }
+
+        if (typeof raw === 'number' && Number.isFinite(raw)) {
+            return raw > 10_000_000_000 ? raw : raw * 1000;
+        }
+
+        if (typeof raw === 'object' && raw instanceof Date) {
+            const t = raw.getTime();
+            return Number.isFinite(t) ? t : null;
+        }
+
+        if (typeof raw === 'string') {
+            const t = raw.trim();
+
+            let ms;
+
+            if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(t)) {
+                ms = Date.parse(`${t.replace(' ', 'T')}Z`);
+            }
+
+            const probablyUtcSansZone =
+                /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(t);
+
+            if (probablyUtcSansZone) {
+                const msUtc = Date.parse(`${t}Z`);
+                if (Number.isFinite(msUtc)) {
+                    ms = msUtc;
+                }
+            }
+
+            if (!Number.isFinite(ms)) {
+                ms = Date.parse(t);
+            }
+
+            return Number.isFinite(ms) ? ms : null;
+        }
+
+        return null;
+    }
+
+    /** Kalan süre saniye (yüksek uyarı); tavan yoksa null. */
+    function secondsRemainingToEnd(endMs) {
+        if (endMs == null) {
+            return null;
+        }
+
+        const secLeft = Math.max(0, Math.ceil((endMs - Date.now()) / 1000));
+        return secLeft;
+    }
+
+    function formatClockRemain(secLeft) {
+        if (secLeft == null) {
+            return '—';
+        }
+
+        const m = Math.floor(secLeft / 60);
+        const s = secLeft % 60;
+        return `${String(m)}:${String(s).padStart(2, '0')}`;
+    }
+
+    function timerSecondsConfiguredValue(state) {
+        const raw = state.timerSecondsConfigured ?? state.TimerSecondsConfigured;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function hideRoundTimerUi() {
+        if (roundTimerInterval != null) {
+            window.clearInterval(roundTimerInterval);
+            roundTimerInterval = null;
+        }
+
+        const panel = document.getElementById('roundTimerPanel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+
+        const clock = document.getElementById('roundTimerClock');
+        if (clock) {
+            clock.textContent = '—';
+            clock.classList.add('text-warning');
+            clock.classList.remove('text-danger');
+        }
+
+        const fill = document.getElementById('roundTimerFill');
+        if (fill) {
+            fill.style.width = '100%';
+            fill.classList.remove('party-round-timer-fill--critical');
+        }
+
+        const track = document.getElementById('roundTimerTrack');
+        if (track) {
+            track.style.display = 'none';
+        }
+    }
+
+    function ensureRoundTimerTicker() {
+        if (roundTimerInterval != null || !playScene) {
+            return;
+        }
+
+        roundTimerInterval = window.setInterval(() => {
+            tickRoundTimerUi(latestPlayState);
+            if (latestPlayState) {
+                evaluateVibrationCues(latestPlayState);
+            }
+        }, 500);
+    }
+
+    function maintainRoundTimerForState(state) {
+        if (!playScene || state.phase !== 'CollectingAnswers') {
+            return;
+        }
+
+        const panel = document.getElementById('roundTimerPanel');
+        if (!panel) {
+            return;
+        }
+
+        const endMs = parseRoundEndsMs(state);
+        if (!endMs) {
+            hideRoundTimerUi();
+            return;
+        }
+
+        panel.style.display = '';
+        const track = document.getElementById('roundTimerTrack');
+        const dur = timerSecondsConfiguredValue(state);
+        if (track && dur > 0) {
+            track.style.display = '';
+        } else if (track) {
+            track.style.display = 'none';
+        }
+
+        ensureRoundTimerTicker();
+        tickRoundTimerUi(state);
+    }
+
+    function tickRoundTimerUi(state) {
+        if (!playScene || !state || state.phase !== 'CollectingAnswers') {
+            return;
+        }
+
+        const endMs = parseRoundEndsMs(state);
+        const clock = document.getElementById('roundTimerClock');
+        const fill = document.getElementById('roundTimerFill');
+
+        if (!clock) {
+            return;
+        }
+
+        if (!endMs) {
+            clock.textContent = '—';
+            return;
+        }
+
+        const secLeft = secondsRemainingToEnd(endMs);
+        if (secLeft === null) {
+            return;
+        }
+
+        clock.textContent = formatClockRemain(secLeft);
+
+        clock.classList.remove('text-warning', 'text-danger');
+        if (secLeft <= 3) {
+            clock.classList.add('text-danger');
+        } else if (secLeft <= 10) {
+            clock.classList.add('text-warning');
+        } else {
+            clock.classList.add('text-warning');
+        }
+
+        const dur = timerSecondsConfiguredValue(state);
+        if (fill) {
+            if (dur > 0) {
+                const ratio = dur > 0 ? Math.min(1, Math.max(0, secLeft / dur)) : 1;
+                fill.style.width = `${ratio * 100}%`;
+                fill.classList.toggle('party-round-timer-fill--critical', secLeft <= 3);
+            } else {
+                fill.style.width = '100%';
+                fill.classList.remove('party-round-timer-fill--critical');
+            }
+        }
+
+        if (secLeft <= 0) {
+            clock.textContent = formatClockRemain(0);
+            clock.classList.remove('text-warning');
+            clock.classList.add('text-danger');
+            const durZero = timerSecondsConfiguredValue(state);
+            if (fill && durZero > 0) {
+                fill.style.width = '0%';
+                fill.classList.add('party-round-timer-fill--critical');
+            }
+        }
+    }
+
+    function syncVibrateRoundForState(state) {
+        const rid = state.currentRoundId ?? null;
+        if (rid !== vibrateRoundKey) {
+            vibrateRoundKey = rid;
+            vibrateLastCountdownSecond = null;
+            vibrateTurnNotifiedForRound = false;
+        }
+    }
+
+    function vibrateAllowed() {
+        try {
+            if (localStorage.getItem('ifsVibrateAlerts') === '0') {
+                return false;
+            }
+        } catch (_) {
+            /* ignore */
+        }
+
+        const chk = document.getElementById('ifsVibrateToggle');
+        return !chk || chk.checked;
+    }
+
+    function pulseShake(elementIds) {
+        if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+
+        const ids = Array.isArray(elementIds) ? elementIds : [elementIds];
+        window.clearTimeout(window.__IFS_SHAKE_T);
+        const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
+        els.forEach((el) => {
+            el.classList.remove('ifs-shake-soft');
+            void el.offsetWidth;
+            el.classList.add('ifs-shake-soft');
+        });
+        if (els.length) {
+            window.__IFS_SHAKE_T = window.setTimeout(() => {
+                els.forEach((el) => el.classList.remove('ifs-shake-soft'));
+            }, 500);
+        }
+    }
+
+    function triggerHaptic(kind) {
+        if (!vibrateAllowed()) {
+            return;
+        }
+
+        const shakeTargets = ['ifsSnack', 'collectPanel', 'answerField', 'questionTitle'];
+        pulseShake(shakeTargets);
+
+        if (navigator.vibrate) {
+            /** Uzun dizi bazı cihazlarda kısaltılır; yine de belirgin “alarm” etkisi hedeflenir. */
+            let pattern;
+            if (kind === 'urgent') {
+                pattern = [140, 45, 150, 45, 160, 50, 180, 55, 200, 60, 220, 55, 200, 65, 250];
+            } else if (kind === 'warn') {
+                pattern = [115, 50, 125, 50, 135, 55, 120, 50, 150];
+            } else {
+                pattern = [100, 40, 120, 40, 100, 40, 130, 50, 150];
+            }
+            navigator.vibrate(pattern);
+
+            window.clearTimeout(window.__IFS_SHAKE_BURST);
+            window.__IFS_SHAKE_BURST = window.setTimeout(
+                () => pulseShake(shakeTargets),
+                kind === 'urgent' ? 140 : kind === 'warn' ? 190 : 230,
+            );
+
+            window.clearTimeout(window.__IFS_VIB_BURST);
+            window.__IFS_VIB_BURST = window.setTimeout(() => {
+                if (!vibrateAllowed() || typeof navigator.vibrate !== 'function') {
+                    return;
+                }
+                let extra;
+                if (kind === 'urgent') {
+                    extra = [155, 48, 195, 55, 230, 60, 260];
+                } else if (kind === 'warn') {
+                    extra = [95, 48, 115, 52, 135, 55, 120];
+                } else {
+                    extra = [95, 42, 115, 48, 95, 42, 125, 52, 140];
+                }
+                navigator.vibrate(extra);
+            }, kind === 'urgent' ? 250 : kind === 'warn' ? 310 : 280);
+        }
+    }
+
+    function evaluateVibrationCues(state) {
+        if (!playScene || state.phase !== 'CollectingAnswers' || !vibrateAllowed()) {
+            return;
+        }
+
+        const yo = String(state.yourNickname ?? state.YourNickname ?? '').trim();
+        const raw = state.waitingAnswerNicknames ?? state.WaitingAnswerNicknames;
+        const wait = normalizeWaitingNicknames(raw);
+        const youPending =
+            yo.length > 0 &&
+            wait.some((n) => String(n ?? '').trim().toLowerCase() === yo.toLowerCase()) &&
+            !state.alreadySubmittedAnswerThisRound;
+
+        if (youPending && !vibrateTurnNotifiedForRound) {
+            vibrateTurnNotifiedForRound = true;
+            triggerHaptic('info');
+        }
+
+        const endMs = parseRoundEndsMs(state);
+        const waitingSubmit = !state.alreadySubmittedAnswerThisRound;
+        const secLeft = waitingSubmit && endMs ? secondsRemainingToEnd(endMs) : null;
+
+        if (waitingSubmit && secLeft != null && secLeft > 0 && secLeft <= 5) {
+            if (secLeft !== vibrateLastCountdownSecond) {
+                vibrateLastCountdownSecond = secLeft;
+                triggerHaptic(secLeft <= 2 ? 'urgent' : 'warn');
+            }
+        }
+    }
+
+    function updateAnswerWaitingLine(state) {
+        const el = document.getElementById('answerWaitingLine');
+        if (!el) {
+            return;
+        }
+
+        const raw = state.waitingAnswerNicknames ?? state.WaitingAnswerNicknames;
+        const names = normalizeWaitingNicknames(raw);
+        const phrase = formatWaitingAnswerPhrase(names);
+        if (!phrase) {
+            hideAnswerWaitingLine();
+            return;
+        }
+
+        el.style.display = '';
+        el.textContent = phrase;
     }
 
     function updateAnswerProgressIndicator(state) {
@@ -395,30 +1038,42 @@
         const textarea = document.getElementById('answerField');
         const sendBtn = document.getElementById('sendAnswerBtn');
         const notice = document.getElementById('answerSentNotice');
+        const label = document.getElementById('answerComposerLabel');
         if (textarea) {
             textarea.disabled = locked;
-            if (locked && !textarea.value.trim()) {
-                textarea.placeholder = 'Cevabın gönderildi';
-            }
-
-            if (!locked) {
-                textarea.placeholder = 'En dramatik tepkiyi seç ve yaz 😉';
+            if (locked) {
+                textarea.value = '';
+                textarea.style.display = 'none';
+            } else {
+                textarea.style.display = '';
+                textarea.placeholder = 'Cevabını yaz...';
             }
         }
 
         if (sendBtn) {
             sendBtn.disabled = locked;
+            sendBtn.style.display = locked ? 'none' : '';
         }
 
         if (notice) {
             notice.style.display = locked ? '' : 'none';
         }
+
+        if (label) {
+            label.style.display = locked ? 'none' : '';
+        }
     }
 
     function setQuestion(text) {
+        const t = text || 'Burada güzel soru çıkması lazım!';
         const headline = document.getElementById('questionTitle');
+        const revealHeadline = document.getElementById('revealQuestionTitle');
         if (headline) {
-            headline.textContent = text || 'Burada güzel soru çıkması lazım!';
+            headline.textContent = t;
+        }
+
+        if (revealHeadline) {
+            revealHeadline.textContent = t;
         }
     }
 
@@ -455,7 +1110,7 @@
                 bubble.className =
                     'answer-card rounded-4 p-4 border border-opacity-50 border-secondary bg-dark bg-opacity-50 text-white';
                 bubble.innerHTML =
-                    `<p class="fw-semibold text-warning small mb-2">KART ${idx + 1}</p><p class="fs-6 mb-0">${encodeText(textValue ?? '')}</p>`;
+                    `<p class="fw-semibold text-warning small mb-2">Kart ${idx + 1}</p><p class="fs-6 mb-0">${encodeText(textValue ?? '')}</p>`;
                 holder.appendChild(bubble);
             }, idx * 135);
         });
@@ -468,7 +1123,7 @@
         }
 
         if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(copyText).then(() => toast('Link arkadasina ✅')).catch(console.error);
+            navigator.clipboard.writeText(copyText).then(() => toast('Panoya kopyalandı ✅')).catch(console.error);
         } else {
             const helper = document.createElement('textarea');
             helper.value = copyText;
@@ -476,7 +1131,7 @@
             helper.select();
             document.execCommand('copy');
             helper.remove();
-            toast('Kopyalamayi denedin 🫱');
+            toast('Kopyalama denendi (tarayıcı kısıtı olabilir) 🫱');
         }
     }
 

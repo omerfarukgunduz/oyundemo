@@ -51,8 +51,14 @@ public sealed class GameHub : Hub
     public Task<HubAck> HostRevealNow(string roomCode, Guid memberGuid) =>
         WithGame(g => g.HostRevealNowAsync(roomCode, memberGuid, Context.ConnectionAborted));
 
+    public Task<HubAck> HostSkipQuestion(string roomCode, Guid memberGuid) =>
+        WithGame(g => g.HostSkipQuestionAsync(roomCode, memberGuid, Context.ConnectionAborted));
+
     public Task<HubAck> HostNextQuestion(string roomCode, Guid memberGuid) =>
         WithGame(g => g.HostNextQuestionAsync(roomCode, memberGuid, Context.ConnectionAborted));
+
+    public Task<HubAck> HostFinishGame(string roomCode, Guid memberGuid) =>
+        WithGame(g => g.HostFinishGameAsync(roomCode, memberGuid, Context.ConnectionAborted));
 
     public Task<HubAck> SendChat(string roomCode, Guid memberGuid, string message) =>
         WithGame(g => g.SendRoomChatAsync(roomCode, memberGuid, message, Context.ConnectionAborted));

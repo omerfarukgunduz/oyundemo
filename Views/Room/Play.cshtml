@@ -10,6 +10,7 @@
         ["nickname"] = Model.Nickname,
         ["isHost"] = Model.IsHost,
         ["inviteUrl"] = Model.InviteUrl,
+        ["playFeedbackUrl"] = Url.Action("SubmitPlayFeedback", "Feedback") ?? "",
     }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 }
 
@@ -18,65 +19,133 @@
         <div class="card card-party rounded-4 p-4 text-white mb-4">
             <div class="d-flex flex-column flex-lg-row gap-4 justify-content-between align-items-start mb-4">
                 <div>
-                    <p class="text-white-50 text-uppercase small mb-2" style="letter-spacing:.08em;">Masada olarak</p>
+                    <p class="text-white-50 text-uppercase small mb-2" style="letter-spacing:.08em;">Takma adın masada</p>
                     <p class="h3 fw-semibold gradient-text mb-0" id="youBadge">@Model.Nickname</p>
                     <small class="text-white-50 d-block mt-3">Davet linki 👉 <span id="inviteCopySnippet" class="text-white fw-semibold">@Model.InviteUrl</span></small>
                     <button id="inviteCopyFloating" type="button" class="btn btn-outline-light btn-sm rounded-pill mt-3 px-4">Linki kopyala</button>
                 </div>
             </div>
 
-            @if (Model.IsHost)
-            {
-                <div id="playHostKickPanel" class="rounded-4 p-4 glass-chip mb-4" style="display:none;">
-                    <p class="text-white-50 small fw-semibold text-uppercase mb-3" style="letter-spacing:.06em;">Oyuncu yonetimi</p>
-                    <div id="playHostKickList" class="d-grid gap-2"></div>
-                </div>
-            }
-
             <section id="collectPanel" style="display:none;">
                 <p class="text-white-50 fw-semibold text-uppercase small mb-2" style="letter-spacing:.06em;">Soru</p>
                 <h2 id="questionTitle" class="h3 fw-semibold lh-base text-white mb-3">...</h2>
-                <p id="answerProgressLine" class="text-white-50 small mb-4 fw-semibold" style="display:none;"><span>Cevaplar:</span> <span id="answerProgressText" class="text-warning ms-1"></span></p>
+                <div id="roundTimerPanel" class="mb-3" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center small text-white-50 fw-semibold mb-2">
+                        <span>Kalan süre</span>
+                        <span id="roundTimerClock" class="fw-semibold text-warning tabular-nums">—</span>
+                    </div>
+                    <div id="roundTimerTrack" class="party-round-timer-track rounded-pill" style="display:none;">
+                        <div id="roundTimerFill" class="party-round-timer-fill rounded-pill" style="width:100%;"></div>
+                    </div>
+                </div>
+                <p id="answerProgressLine" class="text-white-50 small mb-2 fw-semibold" style="display:none;"><span>Cevaplar:</span> <span id="answerProgressText" class="text-warning ms-1"></span></p>
+                <p id="answerWaitingLine" class="text-warning small mb-4 fw-semibold lh-base" style="display:none;" role="status" aria-live="polite"></p>
 
-                <label class="form-label fw-semibold">Anonim cevap</label>
-                <textarea id="answerField" maxlength="500" rows="7" placeholder="En dramatik tepkiyi seç ve yaz 😉" class="form-control rounded-4 bg-dark border-0 text-white px-4 py-3 mb-2"></textarea>
-                <p id="answerSentNotice" class="text-success small fw-semibold mb-4" style="display:none;">Bu soruya cevabın gönderildi; bu turda değiştiremezsin.</p>
+                <label id="answerComposerLabel" class="form-label fw-semibold">Anonim cevap</label>
+                <textarea id="answerField" maxlength="500" rows="7" placeholder="Cevabını yaz..." class="form-control rounded-4 bg-dark border-0 text-white px-4 py-3 mb-2"></textarea>
+                <p id="answerSentNotice" class="text-success small fw-semibold mb-4" style="display:none;">Cevap gönderildi.</p>
                 <div class="row g-3">
                     <div class="col-md-8">
-                        <button id="sendAnswerBtn" type="button" class="btn btn-accent w-100 rounded-pill py-3 fw-bold">Gonder ve guldur masayi</button>
+                        <button id="sendAnswerBtn" type="button" class="btn btn-accent w-100 rounded-pill py-3 fw-bold">Cevap gönder</button>
                     </div>
                     <div class="col-md-4" id="hostRevealPanel" style="display:none;">
-                        <button id="hostRevealEarlyBtn" type="button" class="btn btn-light w-100 rounded-pill py-3 fw-semibold shadow-sm text-dark">Hemen ac</button>
-                        <small class="text-white-50 mt-3 d-inline-block mb-4">Herkes cevabi gonderdiginde kartlar otomatik acilir. Kimse aksamazsa hep sen ac 👀.</small>
+                        <button id="hostRevealEarlyBtn" type="button" class="btn btn-light w-100 rounded-pill py-3 fw-semibold shadow-sm text-dark mb-2">Hemen aç</button>
+                        <button id="hostSkipQuestionBtn" type="button" class="btn btn-outline-warning w-100 rounded-pill py-3 fw-semibold mb-3">Soruyu geç</button>
+                        <button id="hostFinishGameCollectBtn" type="button" class="btn btn-outline-danger border-2 w-100 rounded-pill py-3 fw-semibold mb-3">Oyunu bitir</button>
+                        <small class="text-white-50 d-inline-block mb-4">Herkes cevaplarını gönderdiğinde kartlar otomatik açılır; kimse aksatmazsa kartları hep sen açarsın 👀.<br/><span style="opacity:.85;"><strong>Soruyu geç</strong> — cevaplar açılmadan sıradaki soruya geçilir.<br/><strong>Oyunu bitir</strong> — herkesin ekranında özet görünür.</span></small>
                     </div>
                 </div>
 
-                <p id="feedbackText" class="text-warning fw-semibold small mt-3 mb-3" style="display:none;"></p>
+                <p id="feedbackText" class="text-warning fw-semibold small mt-3 mb-2" style="display:none;"></p>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input bg-dark border-secondary" type="checkbox" role="switch" id="ifsVibrateToggle" checked />
+                    <label class="form-check-label text-white-50 small" for="ifsVibrateToggle">Süre ve sıra bildirimlerinde titreşim</label>
+                </div>
             </section>
 
             <section id="revealPanel" style="display:none;">
-                <p class="fw-semibold gradient-text mb-4">Masadaki anon kartlar 💬</p>
+                <div class="rounded-4 p-4 glass-chip mb-4 border border-secondary border-opacity-25">
+                    <p class="text-white-50 fw-semibold text-uppercase small mb-2" style="letter-spacing:.06em;">Soru</p>
+                    <h2 id="revealQuestionTitle" class="h3 fw-semibold lh-base text-white mb-0">...</h2>
+                </div>
+                <p class="fw-semibold gradient-text mb-4">Masadaki anonim kartlar 💬</p>
                 <div id="deckGrid" class="card-grid mb-4"></div>
 
                 <div id="hostNextPanel" class="rounded-4 p-4 bg-dark bg-opacity-25 border border-secondary border-opacity-25" style="display:none;">
-                    <button id="hostNextRoundBtn" type="button" class="btn btn-accent w-100 rounded-pill fw-bold py-4">Siradaki soru</button>
+                    <button id="hostFinishGameRevealBtn" type="button" class="btn btn-outline-danger w-100 rounded-pill fw-bold py-3 mb-3 border-2">Oyunu bitir</button>
+                    <button id="hostNextRoundBtn" type="button" class="btn btn-accent w-100 rounded-pill fw-bold py-4">Sıradaki soru</button>
                 </div>
             </section>
+
+            <section id="finishedPanel" class="rounded-4 p-4 glass-chip border border-warning border-opacity-25" style="display:none;">
+                <p class="text-white-50 fw-semibold text-uppercase small mb-3" style="letter-spacing:.08em;">Oyun özeti</p>
+                <h3 class="h4 fw-semibold gradient-text mb-4">Bir oyunun daha sonuna geldiniz 👏</h3>
+                <p id="finishedLineFriends" class="text-white lh-base mb-2"></p>
+                <p id="finishedLineRounds" class="text-white lh-base mb-4"></p>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <p class="text-success fw-semibold small text-uppercase mb-2" style="letter-spacing:.06em;">En hızlı ortalamayla yazan ilk 3</p>
+                        <ol id="finishedFastList" class="text-white ps-3 mb-0 small lh-lg"></ol>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-warning fw-semibold small text-uppercase mb-2" style="letter-spacing:.06em;">En geç ortalamayla yazan ilk 3</p>
+                        <ol id="finishedSlowList" class="text-white ps-3 mb-0 small lh-lg"></ol>
+                    </div>
+                </div>
+                <p id="finishedRankFootnote" class="text-white-50 small mt-4 mb-0 d-none"></p>
+            </section>
+
+            @if (Model.IsHost)
+            {
+                <div id="playHostKickPanel" class="rounded-4 p-4 glass-chip mt-4" style="display:none;">
+                    <p class="text-white-50 small fw-semibold text-uppercase mb-3" style="letter-spacing:.06em;">Aktif oyuncular</p>
+                    <div id="playHostKickList" class="d-grid gap-2"></div>
+                </div>
+            }
         </div>
     </div>
     <div class="col-lg-4">
         <div id="roomChatPanel" class="card card-party rounded-4 p-4 text-white h-100 d-flex flex-column">
             <h3 class="h5 gradient-text fw-bold mb-2">Masada sohbet</h3>
-            <p class="text-white-50 small mb-3">Oyuncular takma adlariyla yaziyor — oyun sırasında canli.</p>
+            <p class="text-white-50 small mb-3">Oyuncular takma adlarıyla yazıyor; oyun sırasında canlı.</p>
 
             <div id="chatMessages" class="party-chat-log rounded-4 p-3 mb-3 flex-grow-1 text-white small" aria-live="polite" role="log"></div>
 
             <label class="form-label fw-semibold small mb-2" for="chatInput">Mesaj</label>
             <div class="input-group mb-2">
                 <input id="chatInput" type="text" maxlength="400" autocomplete="off" placeholder="Masaya yaz..." class="form-control rounded-start-pill bg-dark border-0 text-white px-4 py-3" />
-                <button id="chatSendBtn" type="button" class="btn btn-accent rounded-end-pill px-4 fw-semibold">Gonder</button>
+                <button id="chatSendBtn" type="button" class="btn btn-accent rounded-end-pill px-4 fw-semibold">Gönder</button>
             </div>
-            <small class="text-white-50">Enter ile gonder • max 400 karakter</small>
+            <small class="text-white-50">Enter ile gönder • en fazla 400 karakter</small>
+        </div>
+    </div>
+</div>
+
+<!-- Oyun bittiğinde (Finished) JS ile açılır -->
+<div class="modal fade" id="feedbackAfterGameModal" tabindex="-1" aria-labelledby="feedbackAfterGameModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 bg-dark text-white border border-warning border-opacity-50 shadow-lg">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h2 class="modal-title h5 fw-bold gradient-text" id="feedbackAfterGameModalLabel">Kısa bir soru 💬</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <form id="playEndFeedbackForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="RoomCode" value="@Model.RoomCode" />
+                    <input type="hidden" name="MemberGuid" value="@Model.MemberGuid.ToString("D")" />
+
+                    <label class="form-label fw-semibold text-white lh-base mb-2" for="feedbackDeveloperMsg">
+                        Oyun sırasında keyif aldınız mı ve geliştiriciye iletmek istediğiniz bir şey var mı?
+                    </label>
+                    <textarea class="form-control rounded-4 bg-black bg-opacity-25 border-secondary text-white px-3 py-3 mb-2" id="feedbackDeveloperMsg" name="Message" rows="7" maxlength="2000" required placeholder="Örn: Çok eğlendik / Süre çok kısaydı / şu özelliği isterdim…"></textarea>
+                    <small class="text-white-50 d-block mb-0">Gönderdiğiniz metin yalnızca site yöneticisi tarafından okunur.</small>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary border-opacity-25">
+                <button type="button" class="btn btn-outline-light rounded-pill px-4" data-bs-dismiss="modal">Şimdilik atla</button>
+                <button type="submit" form="playEndFeedbackForm" class="btn btn-accent rounded-pill px-5 fw-bold" id="playEndFeedbackSendBtn">Gönder</button>
+            </div>
         </div>
     </div>
 </div>

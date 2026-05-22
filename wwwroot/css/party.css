@@ -1,66 +1,120 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   İFŞA Klasik — premium tema (modern tipografi + koyu lüks palet)
+   ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-    --accent: #ff5f8f;
-    --accent-2: #7c6bff;
-    --mint: #3ee0c9;
-    --sun: #ffcf61;
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+    /* Sıcak metal + soğuk aksan — parlak parti renkleri yerine sofistik derin tonlar */
+    --accent: #d4af6f;
+    --accent-strong: #e8cba0;
+    --accent-2: #8b9fe8;
+    --accent-muted: rgba(212, 175, 111, .22);
+    --surface-glass: rgba(255, 255, 255, .045);
+    --surface-glass-bright: rgba(255, 255, 255, .065);
+    --border-subtle: rgba(255, 255, 255, .08);
+    --border-strong: rgba(255, 255, 255, .12);
+    --text-primary: rgba(247, 245, 252, .96);
+    --text-soft: rgba(232, 228, 240, .66);
 }
 
 .party-body {
     min-height: 100vh;
-    background:
-        radial-gradient(circle at 20% -10%, rgba(255, 95, 143, .35), transparent 42%),
-        radial-gradient(circle at 82% -20%, rgba(124, 107, 255, .35), transparent 45%),
-        linear-gradient(120deg, #0f1023, #26165b 52%, #0f1023);
-    color: #f9f9ff;
-    font-family: "Sora", system-ui, -apple-system, sans-serif;
+    background-color: #090a0f;
+    background-image:
+        radial-gradient(ellipse 120% 80% at 15% -20%, rgba(212, 175, 111, .14), transparent 50%),
+        radial-gradient(ellipse 90% 70% at 95% 10%, rgba(139, 159, 232, .12), transparent 48%),
+        radial-gradient(circle at 50% 100%, rgba(40, 45, 70, .55), transparent 55%),
+        linear-gradient(168deg, #08090e 0%, #10121c 42%, #0c0e16 72%, #0a0b11 100%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-feature-settings: "kern" 1, "liga" 1;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Başlık hiyerarşisi */
+.party-body h1,
+.party-body h2,
+.party-body h3,
+.party-body h4,
+.party-body h5,
+.party-body h6,
+.party-body .display-5,
+.party-body .display-6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
 }
 
 .party-footer-text {
-    color: rgba(255,255,255,.75);
+    color: var(--text-soft);
 }
 
 .party-nav {
-    background: rgba(15, 16, 35, .86);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+    background: rgba(8, 9, 14, .78);
+    backdrop-filter: saturate(140%) blur(16px);
+    -webkit-backdrop-filter: saturate(140%) blur(16px);
+    border-bottom: 1px solid var(--border-subtle) !important;
 }
 
 .party-nav .nav-link {
-    color: rgba(255,255,255,.92) !important;
+    color: rgba(255, 255, 255, .9) !important;
 }
 
 .gradient-text {
-    font-family: "Fredoka", "Sora", system-ui, sans-serif;
-    letter-spacing: -0.5px;
-    background: linear-gradient(120deg, var(--accent), var(--accent-2), var(--mint));
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+    background: linear-gradient(115deg, var(--accent-strong) 0%, var(--accent) 38%, rgba(232, 200, 150, .95) 58%, var(--accent-2) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
 .card-party {
-    background: rgba(255, 255, 255, .08);
-    border: 1px solid rgba(255,255,255,.13);
-    box-shadow: 0 26px 60px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255,255,255,.15);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-subtle);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .06) inset,
+        0 32px 64px rgba(0, 0, 0, .45),
+        0 0 0 1px rgba(0, 0, 0, .2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 1rem;
 }
 
 .btn-accent {
-    background: linear-gradient(120deg, var(--accent), var(--accent-2));
-    color: #ffffff;
+    background: linear-gradient(138deg, #e8d4a8 0%, var(--accent) 42%, #b8924a 100%);
+    color: #121318;
     border: none;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .35) inset,
+        0 10px 28px rgba(0, 0, 0, .35),
+        0 0 24px rgba(212, 175, 111, .18);
 }
 
-.btn-accent:hover {
-    filter: brightness(1.08);
-    color: #ffffff;
+.btn-accent:hover,
+.btn-accent:focus-visible {
+    filter: brightness(1.06);
+    color: #121318;
+}
+
+.btn-accent:active {
+    filter: brightness(.98);
 }
 
 .pulse-dot {
     width: .55rem;
     height: .55rem;
     border-radius: 999px;
-    background: var(--mint);
-    box-shadow: 0 0 0 8px rgba(62,224,201,.35);
+    background: var(--accent-strong);
+    box-shadow: 0 0 0 6px rgba(212, 175, 111, .28), 0 0 18px rgba(212, 175, 111, .35);
 }
 
 .card-grid {
@@ -91,8 +145,8 @@
 }
 
 .glass-chip {
-    background: rgba(255,255,255,.12);
-    border: 1px solid rgba(255,255,255,.15);
+    background: var(--surface-glass-bright);
+    border: 1px solid var(--border-strong);
 }
 
 .party-chat-log {
@@ -100,12 +154,12 @@
     max-height: 420px;
     overflow-y: auto;
     word-break: break-word;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, .28);
+    border: 1px solid var(--border-subtle);
 }
 
 .party-chat-line {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
     padding: 0.45rem 0;
 }
 
@@ -114,34 +168,45 @@
 }
 
 .party-chat-nick {
-    color: rgba(255, 193, 7, 0.95);
+    color: rgba(212, 175, 111, .95);
     font-weight: 600;
 }
 
 .party-chat-time {
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(230, 225, 240, .42);
     font-size: 0.75rem;
     white-space: nowrap;
 }
 
 .party-chat-text {
-    color: rgba(255, 255, 255, 0.92);
+    color: rgba(248, 246, 252, .9);
     margin-top: 0.15rem;
     white-space: pre-wrap;
 }
 
-/* Anchor hedefleri sticky navbar altinda kalmesin */
+/* Navbar marka görünümü */
+.party-body .party-nav .navbar-brand.gradient-text.fs-4 {
+    font-weight: 800;
+}
+
+.badge-live {
+    background: var(--accent-muted);
+    border: 1px solid rgba(212, 175, 111, .2);
+}
+
+/* Anchor hedefleri sticky navbar altında kalmasın */
 #nasil {
     scroll-margin-top: 5.5rem;
 }
 
-/* Mobil / masaustu — push bildirimi gibi: sag ustten kayar */
+/* Mobil / masaüstü — push bildirimi gibi: sağ üstten kayar */
 #ifsSnack.ifs-push-toast {
     position: fixed;
     z-index: 1090;
     top: max(5.5rem, calc(env(safe-area-inset-top, 0px) + 4rem));
     right: max(1rem, env(safe-area-inset-right, 0px));
     max-width: min(21rem, calc(100vw - 2rem));
+    font-family: var(--font-sans);
     line-height: 1.35;
     transform: translate3d(calc(100% + 2rem), 0, 0);
     opacity: 0;
@@ -174,4 +239,77 @@
         opacity: 1;
         visibility: visible;
     }
+}
+
+/* Form kontroller — koyu premium yüzey */
+.party-body .form-control,
+.party-body .form-select {
+    font-family: var(--font-sans);
+}
+
+.party-body .form-control:focus,
+.party-body .form-select:focus {
+    border-color: rgba(212, 175, 111, .45);
+    box-shadow: 0 0 0 0.2rem rgba(212, 175, 111, .12);
+}
+
+.party-body .btn-outline-light {
+    border-color: rgba(255, 255, 255, .18);
+    color: rgba(255, 255, 255, .88);
+    font-weight: 600;
+}
+
+.party-body .btn-outline-light:hover {
+    border-color: rgba(212, 175, 111, .4);
+    color: var(--accent-strong);
+    background: rgba(212, 175, 111, .08);
+}
+
+.party-body .btn-link {
+    color: var(--text-soft) !important;
+}
+
+.party-body .btn-link:hover {
+    color: var(--accent-strong) !important;
+}
+
+/* Tur süresi — geri sayım çubuğu */
+.party-round-timer-track {
+    height: 0.42rem;
+    background: rgba(0, 0, 0, .35);
+    border: 1px solid rgba(255, 255, 255, .1);
+    overflow: hidden;
+}
+
+.party-round-timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--accent-strong));
+    transition: width 0.35s linear;
+    box-shadow: 0 0 12px rgba(212, 175, 111, .25);
+}
+
+.party-round-timer-fill.party-round-timer-fill--critical {
+    background: linear-gradient(90deg, #c45c5c, var(--accent));
+    box-shadow: 0 0 14px rgba(196, 92, 92, .45);
+}
+
+/* Uyarı sallaması — toast veya soru kutusu */
+@keyframes ifsShakeSoft {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ifs-shake-soft {
+        animation: none !important;
+    }
+}
+
+.ifs-shake-soft {
+    animation: ifsShakeSoft 0.45s ease-in-out;
+}
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
 }

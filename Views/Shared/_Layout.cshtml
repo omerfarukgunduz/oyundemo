@@ -7,7 +7,7 @@
     <title>@ViewData["Title"] - İFŞA Klasik</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Sora:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/party.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -15,15 +15,15 @@
 <body class="party-body @(ViewBag.BodyClass ?? string.Empty)">
     <nav class="navbar navbar-expand-lg navbar-dark bg-transparent party-nav border-0 sticky-top mb-4">
         <div class="container">
-            <a class="navbar-brand fw-bold gradient-text fs-4" asp-controller="Home" asp-action="Index">İFŞA Klasik</a>
+            <a class="navbar-brand fw-bold gradient-text fs-4" asp-area="" asp-controller="Home" asp-action="Index">İFŞA Klasik</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
                 <ul class="navbar-nav ms-auto gap-lg-3 align-items-lg-center">
-                    <li class="nav-item"><a class="nav-link fw-semibold" asp-controller="Home" asp-action="Index" asp-fragment="nasil">Nasıl oynanır</a></li>
-                    <li class="nav-item"><a class="btn btn-accent btn-sm rounded-pill px-3 fw-semibold" asp-controller="Room" asp-action="Create">Oda Aç</a></li>
-                    <li class="nav-item"><a class="btn btn-outline-light btn-sm rounded-pill px-3" asp-controller="Room" asp-action="Join">Katıl</a></li>
+                    <li class="nav-item"><a class="nav-link fw-semibold" asp-area="" asp-controller="Home" asp-action="Index" asp-fragment="nasil">Nasıl oynanır</a></li>
+                    <li class="nav-item"><a class="btn btn-accent btn-sm rounded-pill px-3 fw-semibold" asp-area="" asp-controller="Room" asp-action="Create">Oda oluştur</a></li>
+                    <li class="nav-item"><a class="btn btn-outline-light btn-sm rounded-pill px-3" asp-area="" asp-controller="Room" asp-action="Join">Katıl</a></li>
                     @if (User.IsInRole(IfsaRoles.Admin))
                     {
                         <li class="nav-item">
@@ -46,8 +46,13 @@
     </main>
 
     <footer class="border-top border-light border-opacity-25 py-5 mt-auto text-center party-footer-text">
-        <small>İFŞA Klasik — sıcak kahkaha garantisi&nbsp;*</small><br/>
-        <small class="opacity-75">*&nbsp;hukuken garanti yoktur, sorumluluğu yüz yüze teslim&nbsp;:)</small>
+        <p class="small text-white-50 mb-3 px-3 mb-md-4">
+            Bu oyun yalnızca eğlence ve sosyal paylaşım içindir; gerçek kişi veya kurumlarla ilişkilendirilmemelidir. Katılım kendi sorumluluğunuzdadır.
+        </p>
+        <small class="d-inline-block mt-2 opacity-90">
+            Geliştirici:
+            <a class="text-white fw-semibold text-decoration-underline link-offset-2" href="https://omerfarukgunduz.com/" rel="noopener noreferrer" target="_blank">Ömer Faruk Gündüz</a>
+        </small>
     </footer>
 
     <div id="ifsSnack"

@@ -23,7 +23,7 @@
 
                 <div class="mb-4">
                     <label class="fw-semibold form-label" asp-for="Password"></label>
-                    <input class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="Password" autocomplete="current-password" />
+                    <input type="password" class="form-control form-control-lg bg-dark border-0 rounded-pill px-4 text-white" asp-for="Password" autocomplete="current-password" />
                     <span asp-validation-for="Password" class="text-warning small"></span>
                 </div>
 
@@ -32,7 +32,7 @@
                     <label class="form-check-label" for="rememberMeCheckbox">Beni sakla 🔐</label>
                 </div>
 
-                <button class="btn btn-accent w-100 rounded-pill py-4 fw-semibold mb-4" type="submit">Masaya çık 💻</button>
+                <button class="btn btn-accent w-100 rounded-pill py-4 fw-semibold mb-4" type="submit">Giriş yap</button>
                 <partial name="_ValidationScriptsPartial" />
             </form>
 

@@ -1,5 +1,6 @@
+@model CreateRoomVm
 @{
-    ViewData["Title"] = "Oda Aç";
+    ViewData["Title"] = "Oda oluştur";
 }
 
 <div class="row justify-content-center">
@@ -15,17 +16,32 @@
             </p>
 
             <form asp-action="Create" asp-controller="Room" method="post" class="needs-validation">
+                @Html.ValidationSummary(false, "", new { @class = "text-danger small mb-3" })
                 @Html.AntiForgeryToken()
-                <label class="form-label fw-semibold">Takma adın</label>
-                <input class="form-control form-control-lg bg-dark text-white border-0 rounded-4 mb-3" name="nickname" maxlength="32" placeholder="Misafir" required />
+                <label class="form-label fw-semibold" asp-for="Nickname"></label>
+                <input class="form-control form-control-lg bg-dark text-white border-0 rounded-4 mb-3" asp-for="Nickname" maxlength="32" placeholder="Takma adını yaz" autocomplete="nickname" autofocus />
+
+                <label class="form-label fw-semibold" asp-for="RoundTimerSeconds"></label>
+                <select class="form-select form-select-lg bg-dark border-0 text-white rounded-4 mb-1" asp-for="RoundTimerSeconds">
+                    <option value="0">Süre yok (tur manuel bitebilir)</option>
+                    <option value="30">30 saniye</option>
+                    <option value="60">60 saniye</option>
+                    <option value="90">90 saniye</option>
+                    <option value="120">120 saniye</option>
+                </select>
+                <p class="text-white-50 small mb-4">Süre dolunca süre atan turlarda kartlar otomatik açılır.</p>
 
                 <button class="btn btn-accent btn-lg w-100 rounded-pill fw-bold" type="submit">Masayı Hazırla</button>
             </form>
 
             <p class="small text-white-50 mt-3 mb-0 text-center">
                 Zaten arkadaşından kod aldıysan
-                <a class="fw-semibold text-white" asp-action="Join" asp-controller="Room">Katıl’a</a> uğra.
+                <a class="fw-semibold text-white" asp-action="Join" asp-controller="Room">Oyuna katıl</a> sayfasına geç.
             </p>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

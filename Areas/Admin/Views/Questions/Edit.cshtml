@@ -1,15 +1,15 @@
 @model QuestionVm
 @{
-    ViewData["Title"] = "Kart güncelledik";
+    ViewData["Title"] = "Soru güncelle";
 }
 
 <div class="row justify-content-center">
     <div class="col-xl-9">
         <div class="card card-party rounded-4 p-6 text-white">
             <div class="d-flex flex-column flex-lg-row gap-5 mb-7 justify-content-between align-items-lg-center">
-                <h1 class="h4 fw-bold mb-5 mb-lg-0">Edit ↔️ güncelleniyor</h1>
-                <a asp-area="Admin" asp-controller="Questions" asp-action="Index" asp-route-packageId="@Model.PackageId" class="btn btn-outline-light rounded-pill px-8 py-4 fw-semibold">← Liste</a>
-                <small class="text-white-75">Paket ref: @Model.PackageId</small>
+                <h1 class="h4 fw-bold mb-5 mb-lg-0">Soru güncelle</h1>
+                <a asp-area="Admin" asp-controller="Questions" asp-action="Index" asp-route-packageId="@Model.PackageId" class="btn btn-outline-light rounded-pill px-8 py-4 fw-semibold">← Soru listesi</a>
+                <small class="text-white-75">Paket: @Model.PackageId</small>
             </div>
 
             <form asp-area="Admin" asp-controller="Questions" asp-action="Edit" method="post">
@@ -22,7 +22,7 @@
                 <textarea asp-for="Text" rows="12" maxlength="2000" class="form-control bg-dark border-0 rounded-4 px-5 py-5 text-white"></textarea>
                 <span asp-validation-for="Text" class="small text-danger"></span>
 
-                <button class="btn btn-accent w-100 rounded-pill py-6 fw-semibold mt-6" type="submit">Komik versiyona kilitle ⚡️</button>
+                <button class="btn btn-accent w-100 rounded-pill py-6 fw-semibold mt-6" type="submit">Kaydet</button>
                 <partial name="_ValidationScriptsPartial" />
             </form>
         </div>

@@ -7,8 +7,8 @@
 <div class="row justify-content-center">
     <div class="col-md-9 col-lg-6">
         <div class="card card-party rounded-4 p-4 text-white">
-            <h1 class="h3 mb-2">Kodu gir takımla buluş</h1>
-            <p class="text-white-50 mb-4">Davet bağlantından veya dostunun yüksek sesinden duyduğun kodu yaz.</p>
+            <h1 class="h3 mb-2">Kodu gir, takımınla buluş</h1>
+            <p class="text-white-50 mb-4">Davet bağlantısından veya arkadaşının yüksek sesle söylediği kodu yaz.</p>
 
             <form asp-action="Join" asp-controller="Room" method="post">
                 @Html.AntiForgeryToken()
@@ -20,10 +20,10 @@
 
                 <div class="mb-4">
                     <label class="form-label fw-semibold" asp-for="Nickname">Sen kimsin?</label>
-                    <input class="form-control bg-dark border-0 text-white rounded-4" asp-for="Nickname" maxlength="32" placeholder="Misafir" />
+                    <input class="form-control bg-dark border-0 text-white rounded-4" asp-for="Nickname" maxlength="32" placeholder="Takma adını yaz" />
                 </div>
 
-                <button class="btn btn-accent btn-lg w-100 rounded-pill fw-bold" type="submit">İçeri hopla</button>
+                <button class="btn btn-accent btn-lg w-100 rounded-pill fw-bold" type="submit">Giriş yap</button>
                 <partial name="_ValidationScriptsPartial" />
             </form>
 

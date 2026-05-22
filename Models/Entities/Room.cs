@@ -13,6 +13,8 @@ public class Room
     public int? CurrentRoundId { get; set; }
     public Round? CurrentRound { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    /// <summary>Utc when first play round began (tur süresi / özet süresi için).</summary>
+    public DateTime? GameStartedAtUtc { get; set; }
     /// <summary>Round answer timer seconds. 0 = disabled.</summary>
     public int RoundTimerSeconds { get; set; }
 

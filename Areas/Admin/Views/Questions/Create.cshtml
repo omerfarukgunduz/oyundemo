@@ -1,15 +1,15 @@
 @model QuestionVm
 @{
-    ViewData["Title"] = $"Yeni kart • paket #{Model.PackageId}";
+    ViewData["Title"] = "Soru ekle";
 }
 
 <div class="row justify-content-center">
     <div class="col-xl-10 col-xxl-8">
         <div class="card card-party rounded-4 p-5 text-white">
             <div class="d-flex flex-column flex-xl-row gap-6 justify-content-between mb-6">
-                <h1 class="h4 fw-bold mb-4 mb-xl-0 flex-grow-1">Yeni soru 📫</h1>
-                <a class="btn btn-outline-light fw-semibold rounded-pill px-6 py-3 mb-4 mb-xl-0 ms-xl-auto" asp-area="Admin" asp-controller="Questions" asp-action="Index" asp-route-packageId="@Model.PackageId">← Liste</a>
-                <small class="text-white-75 d-block mb-0 mb-xl-auto">Paket bağlantısı: <strong class="text-white">@Model.PackageId</strong></small>
+                <h1 class="h4 fw-bold mb-4 mb-xl-0 flex-grow-1">Soru ekle</h1>
+                <a class="btn btn-outline-light fw-semibold rounded-pill px-6 py-3 mb-4 mb-xl-0 ms-xl-auto" asp-area="Admin" asp-controller="Questions" asp-action="Index" asp-route-packageId="@Model.PackageId">← Soru listesi</a>
+                <small class="text-white-75 d-block mb-0 mb-xl-auto">Paket: <strong class="text-white">@Model.PackageId</strong></small>
             </div>
 
             <form asp-area="Admin" asp-controller="Questions" asp-action="Create" method="post">
@@ -24,7 +24,7 @@
                     <small class="text-white-50 d-inline-block mt-3">Uzun yazı daha komik 👀?</small>
                 </div>
 
-                <button type="submit" class="btn btn-accent w-100 fw-bold rounded-pill py-5">Kaydet ⚡️</button>
+                <button type="submit" class="btn btn-accent w-100 fw-bold rounded-pill py-5">Kaydet</button>
                 <partial name="_ValidationScriptsPartial" />
             </form>
         </div>
